@@ -84,6 +84,55 @@
       </div>
     </div>
 
+    <!-- 任务选择对话框 -->
+    <el-dialog
+      v-model="showTodoSelectDialog"
+      title="📋 请选择要完成的任务"
+      width="600px"
+      :close-on-click-modal="false"
+    >
+      <div class="todo-select-list">
+        <el-table
+          :data="todoCandidates"
+          style="width: 100%"
+          highlight-current-row
+          @current-change="handleTodoSelect"
+        >
+          <el-table-column label="选择" width="80">
+            <template #default="scope">
+              <el-radio
+                v-model="selectedTodoId"
+                :label="scope.row.id"
+              >
+                &nbsp;
+              </el-radio>
+            </template>
+          </el-table-column>
+          <el-table-column prop="title" label="任务标题" min-width="150" />
+          <el-table-column prop="due_date" label="截止时间" width="160">
+            <template #default="scope">
+              {{ formatDueDate(scope.row.due_date) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="priority" label="优先级" width="100">
+            <template #default="scope">
+              <el-tag :type="getPriorityType(scope.row.priority)" size="small">
+                {{ getPriorityText(scope.row.priority) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="cancelTodoSelect">取消</el-button>
+          <el-button type="primary" @click="confirmTodoComplete" :disabled="!selectedTodoId">
+            确认完成
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
+
     <!-- 功能说明 -->
     <div class="feature-info">
       <el-card class="info-card">
@@ -141,11 +190,43 @@ export default {
         { key: 'meeting', label: '📅 预订会议', text: '预订会议室，明天上午10点到12点' },
         { key: 'weather', label: '🌤️ 查天气', text: '今天天气怎么样' },
         { key: 'list', label: '📝 查看任务', text: '帮我查看一下我的待办事项' }
-      ]
+      ],
+      // 任务选择对话框相关
+      showTodoSelectDialog: false,
+      todoCandidates: [],
+      selectedTodoId: null,
+      pendingAction: null // 保存待执行的操作
     }
   },
   mounted() {
     this.scrollToBottom()
+    
+    // 检查是否有待办选择任务
+    const candidatesStr = sessionStorage.getItem('todo_candidates')
+    if (candidatesStr) {
+      try {
+        const candidates = JSON.parse(candidatesStr)
+        if (candidates && candidates.length > 0) {
+          console.log('[Agent] 从 sessionStorage 加载候选任务:', candidates)
+          this.todoCandidates = candidates
+          this.selectedTodoId = null
+          this.showTodoSelectDialog = true
+          
+          // 清除 sessionStorage
+          sessionStorage.removeItem('todo_candidates')
+          
+          // 添加提示消息
+          this.messages.push({
+            type: 'agent',
+            text: `找到 ${candidates.length} 个相似任务，请选择要完成的任务：`,
+            timestamp: new Date(),
+            taskType: 'todo'
+          })
+        }
+      } catch (error) {
+        console.error('[Agent] 解析候选任务失败:', error)
+      }
+    }
   },
   methods: {
     async sendMessage() {
@@ -185,6 +266,29 @@ export default {
           }
 
           this.messages.push(agentMessage)
+
+          // 检查是否需要选择任务
+          console.log('[Agent] 完整响应:', result)
+          console.log('[Agent] task_type:', result.task_type)
+          console.log('[Agent] execution_result:', result.execution_result)
+          console.log('[Agent] action:', result.execution_result?.action)
+          
+          if (result.task_type === 'todo' && result.execution_result?.action === 'select_todo') {
+            console.log('[Agent] ✅ 匹配成功！显示任务选择对话框')
+            console.log('[Agent] 候选任务:', result.execution_result.candidates)
+            // 显示任务选择对话框
+            this.todoCandidates = result.execution_result.candidates || []
+            this.selectedTodoId = null
+            this.pendingAction = {
+              originalInput: currentInput,
+              sessionId: this.sessionId
+            }
+            this.showTodoSelectDialog = true
+            console.log('[Agent] showTodoSelectDialog 设置为:', this.showTodoSelectDialog)
+            return // 不继续执行后续逻辑
+          } else {
+            console.log('[Agent] ❌ 条件不匹配，不显示对话框')
+          }
 
           // 如果是todo相关操作，提示用户刷新待办页面
           if (result.task_type === 'todo' && result.execution_result?.success) {
@@ -259,6 +363,95 @@ export default {
           this.$refs.messagesContainer.scrollTop = this.$refs.messagesContainer.scrollHeight
         }
       })
+    },
+
+    // 任务选择对话框相关方法
+    handleTodoSelect(row) {
+      if (row) {
+        this.selectedTodoId = row.id
+      }
+    },
+
+    cancelTodoSelect() {
+      this.showTodoSelectDialog = false
+      this.todoCandidates = []
+      this.selectedTodoId = null
+      this.pendingAction = null
+    },
+
+    async confirmTodoComplete() {
+      if (!this.selectedTodoId) return
+
+      try {
+        // 调用API完成任务
+        const { updateTodoStatus } = await import('@/api/modules/todo')
+        const completionTime = new Date().toISOString()
+        
+        await updateTodoStatus(this.selectedTodoId, 'completed', completionTime)
+        
+        ElMessage.success('任务已标记为完成！')
+        
+        // 关闭对话框
+        this.showTodoSelectDialog = false
+        this.todoCandidates = []
+        this.selectedTodoId = null
+        this.pendingAction = null
+        
+        // 在聊天中添加确认消息
+        this.messages.push({
+          type: 'agent',
+          text: '✅ 任务已完成！请刷新待办事项页面查看最新状态。',
+          timestamp: new Date(),
+          taskType: 'todo',
+          executionResult: { success: true }
+        })
+        
+        this.scrollToBottom()
+      } catch (error) {
+        console.error('完成任务失败:', error)
+        ElMessage.error('完成任务失败，请重试')
+      }
+    },
+
+    // 格式化截止时间
+    formatDueDate(dueDate) {
+      if (!dueDate) return '无'
+      
+      try {
+        const date = new Date(dueDate)
+        if (isNaN(date.getTime())) return '无'
+        
+        const month = (date.getMonth() + 1).toString().padStart(2, '0')
+        const day = date.getDate().toString().padStart(2, '0')
+        const hours = date.getHours().toString().padStart(2, '0')
+        const minutes = date.getMinutes().toString().padStart(2, '0')
+        
+        return `${month}-${day} ${hours}:${minutes}`
+      } catch (error) {
+        return '无'
+      }
+    },
+
+    // 获取优先级类型
+    getPriorityType(priority) {
+      const types = {
+        'low': 'info',
+        'medium': '',
+        'high': 'warning',
+        'urgent': 'danger'
+      }
+      return types[priority] || ''
+    },
+
+    // 获取优先级文本
+    getPriorityText(priority) {
+      const texts = {
+        'low': '低',
+        'medium': '中',
+        'high': '高',
+        'urgent': '紧急'
+      }
+      return texts[priority] || priority
     }
   }
 }

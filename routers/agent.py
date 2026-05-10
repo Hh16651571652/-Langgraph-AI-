@@ -102,7 +102,8 @@ async def chat_with_agent(
             "data": {
                 "response": result["response"],
                 "session_id": session_id,
-                "task_type": result.get("task_type")
+                "task_type": result.get("task_type"),
+                "execution_result": result.get("execution_result", {})
             }
         }
         

@@ -38,9 +38,12 @@ class TodoAgent:
         prompt_manager = get_prompt_manager()
         system_prompt = prompt_manager.get_todo_agent_prompt()
         
-        # Prompt模板 - 用于理解用户意图并提取参数
+        # Prompt模板 - 使用双花括号转义JSON示例中的花括号
+        # LangChain会将 {{ 转义为 {, }} 转义为 }
+        escaped_prompt = system_prompt.replace("{", "{{").replace("}", "}}")
+        
         self.prompt = ChatPromptTemplate.from_messages([
-            ("system", system_prompt),
+            ("system", escaped_prompt),
             ("user", "{input}")
         ])
         
@@ -150,8 +153,8 @@ class TodoAgent:
         try:
             print("[TodoAgent] >>> LLM理解用户意图...")
             
-            # 1. 使用LLM理解意图并提取参数
-            action_data = self.chain.invoke({"input": message})
+            # 1. 使用LLM理解意图并提取参数（使用异步调用）
+            action_data = await self.chain.ainvoke({"input": message})
             action = action_data.get("action", "query")
             
             print(f"[TodoAgent] 识别操作: {action}")
@@ -169,6 +172,8 @@ class TodoAgent:
                 
         except Exception as e:
             print(f"[TodoAgent] 处理失败: {e}")
+            import traceback
+            traceback.print_exc()
             return {"success": False, "message": f"❌ 处理失败: {str(e)}"}
     
     async def _create_todo(self, db: AsyncSession, user_id: int, action_data: dict) -> Dict[str, Any]:
@@ -275,17 +280,76 @@ class TodoAgent:
             return {"success": False, "message": f"❌ 查询失败: {str(e)}"}
     
     async def _update_todo(self, db: AsyncSession, user_id: int, action_data: dict) -> Dict[str, Any]:
-        """更新待办状态"""
+        """
+        更新待办状态 - 支持多任务选择
+        
+        如果存在多个相似任务且未指定ID，返回候选列表供用户选择
+        """
         try:
             todo_id = action_data.get("todo_id", 0)
+            title_keyword = action_data.get("title", "")
             
-            if todo_id == 0:
-                # 如果没有指定ID,标记第一个待办为完成
-                todos, _ = await todo_crud.get_todos_by_user_id(db, user_id, page=1, page_size=1)
+            print(f"[TodoAgent Update] todo_id={todo_id}, title_keyword='{title_keyword}'")
+            
+            # 如果没有指定ID，但有标题关键词，查找所有匹配的进行中任务
+            if todo_id == 0 and title_keyword:
+                print(f"[TodoAgent Update] 使用关键词 '{title_keyword}' 搜索匹配任务...")
+                # 查询所有pending状态的任务
+                todos, total = await todo_crud.get_todos_by_user_id(db, user_id, status="pending", page=1, page_size=50)
+                
+                print(f"[TodoAgent Update] 找到 {len(todos)} 个 pending 任务")
+                
+                # 模糊匹配标题
+                matched_todos = [
+                    t for t in todos 
+                    if title_keyword.lower() in t.title.lower()
+                ]
+                
+                print(f"[TodoAgent Update] 匹配到 {len(matched_todos)} 个任务")
+                for t in matched_todos:
+                    print(f"  - ID={t.id}, title='{t.title}', due_date={t.due_date}")
+                
+                # 如果找到多个匹配项，返回候选列表让用户选择
+                if len(matched_todos) > 1:
+                    candidate_list = [
+                        {
+                            "id": t.id,
+                            "title": t.title,
+                            "description": t.description or "",
+                            "due_date": t.due_date.isoformat() if t.due_date else None,
+                            "priority": t.priority,
+                            "category": t.category,
+                            "created_at": t.created_at.isoformat() if t.created_at else None
+                        }
+                        for t in matched_todos
+                    ]
+                    
+                    return {
+                        "success": True,
+                        "message": f"找到 {len(candidate_list)} 个相似任务，请选择要完成的任务",
+                        "action": "select_todo",
+                        "candidates": candidate_list
+                    }
+                
+                # 如果只有一个匹配项，直接使用该ID
+                elif len(matched_todos) == 1:
+                    todo_id = matched_todos[0].id
+                
+                # 如果没有匹配项，使用默认逻辑
+                else:
+                    todos, _ = await todo_crud.get_todos_by_user_id(db, user_id, status="pending", page=1, page_size=1)
+                    if not todos:
+                        return {"success": False, "message": "没有可更新的待办"}
+                    todo_id = todos[0].id
+            
+            # 如果没有指定ID且没有关键词，使用默认逻辑（第一个pending任务）
+            elif todo_id == 0:
+                todos, _ = await todo_crud.get_todos_by_user_id(db, user_id, status="pending", page=1, page_size=1)
                 if not todos:
                     return {"success": False, "message": "没有可更新的待办"}
                 todo_id = todos[0].id
             
+            # 执行更新操作
             todo = await todo_crud.get_todo_by_id_and_user(db, todo_id, user_id)
             if not todo:
                 return {"success": False, "message": "待办不存在"}

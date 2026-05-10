@@ -23,8 +23,15 @@ class MeetingAgent:
         """加载Prompt模板"""
         prompt_manager = get_prompt_manager()
         prompt_text = prompt_manager.get_meeting_agent_prompt()
-        prompt_text = prompt_text.replace('{user_input}', '{{ user_input }}')
+        
+        # 保护模板变量 {{ user_input }}
+        prompt_text = prompt_text.replace('{{ user_input }}', '___USER_INPUT_PLACEHOLDER___')
+        
+        # 将其他所有 {{ 和 }} 替换为占位符，避免与 JSON 示例冲突
         prompt_text = prompt_text.replace('{{', '【').replace('}}', '】')
+        
+        # 恢复模板变量
+        prompt_text = prompt_text.replace('___USER_INPUT_PLACEHOLDER___', '{{ user_input }}')
         
         return PromptTemplate.from_template(prompt_text, template_format="jinja2")
     
@@ -41,6 +48,9 @@ class MeetingAgent:
         try:
             # 构建完整prompt
             prompt = self.prompt_template.format(user_input=user_input)
+            
+            print(f"[MeetingAgent] Prompt 长度: {len(prompt)}")
+            print(f"[MeetingAgent] 前500字符: {prompt[:500]}")
             
             # 调用LLM (注意: invoke是同步方法,不需要await)
             response = self.llm.invoke(prompt)

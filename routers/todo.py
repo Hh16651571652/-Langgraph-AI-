@@ -24,6 +24,42 @@ router = APIRouter(
 )
 
 
+@router.post("/create", response_model=TodoItem)
+async def create_todo(
+    todo_data: TodoCreate,
+    db: AsyncSession = Depends(get_database),
+    current_user_id: int = Depends(get_current_user_id_from_session)
+):
+    """创建新的待办事项"""
+    # 调用CRUD创建待办
+    new_todo = await todo_crud.create_todo(
+        db=db,
+        user_id=current_user_id,
+        title=todo_data.title,
+        description=todo_data.description,
+        due_date=todo_data.due_date,
+        priority=todo_data.priority,
+        category=todo_data.category,
+        reminder_enabled=todo_data.reminder_enabled
+    )
+    
+    # 返回创建的待办事项
+    return TodoItem(
+        id=new_todo.id,
+        title=new_todo.title,
+        description=new_todo.description,
+        status=new_todo.status,
+        priority=new_todo.priority,
+        category=new_todo.category,
+        due_date=new_todo.due_date,
+        completed_at=new_todo.completed_at,
+        reminder_enabled=new_todo.reminder_enabled,
+        is_reminded=new_todo.is_reminded,
+        created_at=new_todo.created_at,
+        updated_at=new_todo.updated_at
+    )
+
+
 @router.get("/list", response_model=TodoListResponse)
 async def get_todo_list(
     req: Request,

@@ -135,13 +135,18 @@ async def get_todos_by_user_id(
     )
     total = count_result.scalar()
     
-    # 分页查询 - 按截止时间升序排列（紧急任务优先）
+    # 分页查询 - 优先显示未完成的任务，再按截止时间升序排列
     offset = (page - 1) * page_size
     result = await db.execute(
         select(Todo)
         .where(and_(*conditions))
         .order_by(
-            Todo.due_date.asc(),  # MySQL不支持NULLS LAST,有截止时间的排前面
+            case(
+                (Todo.status == "pending", 0),
+                (Todo.status == "cancelled", 1),
+                else_=2
+            ),  # pending(0) > cancelled(1) > completed(2)
+            Todo.due_date.asc(),  # 有截止时间的排前面（NULL会排在最后）
             Todo.created_at.desc()  # 没有截止时间的，按创建时间倒序
         )
         .offset(offset)

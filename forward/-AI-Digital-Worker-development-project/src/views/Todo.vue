@@ -316,7 +316,7 @@ const todoStats = ref({
 const fetchTodoList = async () => {
   try {
     const response = await getTodoList()
-    console.log('[Todo] API响应:', response)
+    
     // API拦截器已经提取了response.data.data,所以response直接是数组
     const rawData = Array.isArray(response) ? response : []
     
@@ -352,8 +352,6 @@ const fetchTodoList = async () => {
         completionTime: task.completed_at              // completed_at → completionTime (用于历史记录)
       }
     })
-    
-    console.log('[Todo] 待办列表:', todoList.value.length, '条')
   } catch (error) {
     console.error('[Todo] 获取失败:', error)
     ElMessage.error('获取代办列表失败: ' + error.message)
@@ -365,7 +363,6 @@ const fetchTodoList = async () => {
 // 格式化截止时间
 const formatDueDate = (dueDate) => {
   if (!dueDate) {
-    console.log('[Todo] due_date 为空')
     return '无'
   }
   
@@ -374,7 +371,6 @@ const formatDueDate = (dueDate) => {
     
     // 检查日期是否有效
     if (isNaN(date.getTime())) {
-      console.warn('[Todo] 无效的日期格式:', dueDate)
       return '无'
     }
     
@@ -409,11 +405,10 @@ const mapCategory = (category) => {
 const fetchTodoStats = async () => {
   try {
     const response = await getTodoStats()
-    console.log('[Todo] 统计数据:', response)
     // API拦截器已经提取了response.data.data,所以response直接是对象
     const statsData = response || {}
     
-    // 只统计“进行中”的任务(排除已完成和逾期)
+    // 只统计"进行中"的任务(排除已完成和逾期)
     const ongoingTasks = todoList.value.filter(task => task.status === '进行中')
     const completedTasks = todoList.value.filter(task => task.status === '已完成')
     
@@ -438,8 +433,6 @@ const fetchTodoStats = async () => {
       suggestion,
       ...statsData
     }
-    
-    console.log('[Todo] 进行中:', ongoingTasks.length, '已完成:', completedTasks.length, '完成率:', completionRate + '%')
   } catch (error) {
     console.error('[Todo] 统计获取失败:', error)
     ElMessage.error('获取统计信息失败: ' + error.message)
@@ -527,7 +520,7 @@ const markTaskAsCompleted = async (task) => {
   try {
     // 确认对话框
     await ElMessageBox.confirm(
-      `确定要将任务"${task.title}"标记为已完成吗？`,
+      `确定要将任务“${task.title}”标记为已完成吗？`,
       '确认完成',
       {
         confirmButtonText: '确定',
@@ -539,8 +532,9 @@ const markTaskAsCompleted = async (task) => {
     // 记录完成时间
     const completionTime = new Date().toISOString()
     
-    await updateTodoStatus(task.id, '已完成', completionTime)
-    ElMessage.success(`任务"${task.title}"已标记为完成`)
+    // 传递英文状态给后端
+    await updateTodoStatus(task.id, 'completed', completionTime)
+    ElMessage.success(`任务“${task.title}”已标记为完成`)
     
     // 重新获取数据
     await refreshTodos()
@@ -561,10 +555,11 @@ const markTaskAsCompleted = async (task) => {
 const updateTaskStatus = async (id, currentStatus) => {
   try {
     let newStatus
-    if (currentStatus === '已完成') newStatus = '进行中'
-    else if (currentStatus === '进行中') newStatus = '已完成'
-    else if (currentStatus === '逾期') newStatus = '进行中'
-    else newStatus = '进行中'
+    // 前端显示状态 -> 后端英文状态的映射
+    if (currentStatus === '已完成') newStatus = 'pending'  // 从完成改回待处理
+    else if (currentStatus === '进行中') newStatus = 'completed'  // 从待处理改为完成
+    else if (currentStatus === '逾期') newStatus = 'pending'  // 从逾期改回待处理
+    else newStatus = 'pending'
     
     await updateTodoStatus(id, newStatus)
     ElMessage.success('状态已更新，并同步至协作方')
@@ -599,8 +594,8 @@ const markOverdueAsCompleted = async (task) => {
     // 记录完成时间
     const completionTime = new Date().toISOString()
     
-    // 调用API更新状态
-    await updateTodoStatus(task.id, '已完成', completionTime)
+    // 调用API更新状态（传递英文状态）
+    await updateTodoStatus(task.id, 'completed', completionTime)
     ElMessage.success(`任务“${task.title}”已标记为完成`)
     
     // 重新获取数据

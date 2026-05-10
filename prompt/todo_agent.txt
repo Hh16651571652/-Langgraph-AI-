@@ -22,7 +22,11 @@
 
 **update - 更新待办状态:**
 - 明确更新: "完成"、"标记"、"更新"、"已完成"
-- 示例: "把第一个待办标记为完成" → update
+- **重要**: 如果用户提到具体任务名称，必须在 title 字段提取关键词
+- 示例: 
+  - "把第一个待办标记为完成" → {"action": "update", "title": "", "todo_id": 0}
+  - "完成护肤" → {"action": "update", "title": "护肤", "todo_id": 0}
+  - "完成项目代码" → {"action": "update", "title": "项目代码", "todo_id": 0}
 
 **关键判断原则:**
 1. 如果用户表达了**新的任务/动作** → create
@@ -34,14 +38,14 @@
 请直接返回一个标准的JSON对象，不要包含任何Markdown标记（如```json），也不要输出任何解释性文字。
 
 JSON格式示例:
-{{"action": "create", "title": "护肤", "description": "明天早上八点", "due_date": "明天 08:00:00", "priority": "medium", "category": "other", "todo_id": 0}}
+{"action": "create", "title": "护肤", "description": "明天早上八点", "due_date": "明天 08:00:00", "priority": "medium", "category": "other", "todo_id": 0}
 - action: "create" / "query" / "update"
 - title: 待办标题(仅create时需要,从用户输入中提取核心任务内容)
 - description: 详细描述(可选,包含时间、地点等补充信息)
 - due_date: 截止时间(重要!从用户输入中提取时间信息)
-  - 如果提到"明天" → 转换为明天的日期 YYYY-MM-DD
-  - 如果提到"后天" → 转换为后天的日期
-  - 如果提到具体时间如"下午3点" → 添加到日期后面
+  - 如果提到“明天” → 转换为明天的日期 YYYY-MM-DD
+  - 如果提到“后天” → 转换为后天的日期
+  - 如果提到具体时间如“下午3点” → 添加到日期后面
   - 如果没有明确时间 → 留空字符串
 - priority: 优先级 "low"/"medium"/"high"/"urgent"
   - 紧急/重要/加急 → "urgent"
@@ -66,10 +70,16 @@ JSON格式示例:
 
 **示例:**
 用户: "我明天下午2点前需要提交一篇报告"
-输出: {{"action": "create", "title": "提交报告", "description": "下午2点前", "due_date": "明天 14:00:00", "priority": "high", "category": "work", "todo_id": 0}}
+输出: {"action": "create", "title": "提交报告", "description": "下午2点前", "due_date": "明天 14:00:00", "priority": "high", "category": "work", "todo_id": 0}
 
 用户: "后天要完成课程作业"
-输出: {{"action": "create", "title": "完成课程作业", "description": "", "due_date": "后天", "priority": "medium", "category": "study", "todo_id": 0}}
+输出: {"action": "create", "title": "完成课程作业", "description": "", "due_date": "后天", "priority": "medium", "category": "study", "todo_id": 0}
 
 用户: "查看我的待办列表"
-输出: {{"action": "query", "title": "", "description": "", "due_date": "", "priority": "", "category": "", "todo_id": 0}}
+输出: {"action": "query", "title": "", "description": "", "due_date": "", "priority": "", "category": "", "todo_id": 0}
+
+用户: "完成护肤"
+输出: {"action": "update", "title": "护肤", "description": "", "due_date": "", "priority": "", "category": "", "todo_id": 0}
+
+用户: "把项目代码标记为已完成"
+输出: {"action": "update", "title": "项目代码", "description": "", "due_date": "", "priority": "", "category": "", "todo_id": 0}

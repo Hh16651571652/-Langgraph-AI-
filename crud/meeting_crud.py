@@ -106,6 +106,45 @@ async def get_room_by_id(db: AsyncSession, room_id: int) -> MeetingRoom | None:
     return result.scalar_one_or_none()
 
 
+async def auto_complete_expired_bookings(db: AsyncSession) -> int:
+    """
+    自动完成已过期的 confirmed 状态预约
+    
+    Args:
+        db: 数据库会话
+        
+    Returns:
+        更新的记录数
+    """
+    now = datetime.datetime.now()
+    
+    # 查找所有 end_time < 当前时间 且 status = 'confirmed' 的预约
+    result = await db.execute(
+        select(MeetingBooking).where(
+            and_(
+                MeetingBooking.status == "confirmed",
+                MeetingBooking.end_time < now
+            )
+        )
+    )
+    expired_bookings = result.scalars().all()
+    
+    if not expired_bookings:
+        return 0
+    
+    # 批量更新为 completed 状态
+    for booking in expired_bookings:
+        room_id = booking.room_id
+        booking.status = "completed"
+        # 将会议室状态改回“可申请”
+        await update_room_status(db, room_id, "可申请")
+    
+    await db.commit()
+    
+    print(f"[MeetingCRUD] 自动完成 {len(expired_bookings)} 个过期预约")
+    return len(expired_bookings)
+
+
 async def get_rooms_with_bookings(
     db: AsyncSession,
     user_id: int,
@@ -124,6 +163,9 @@ async def get_rooms_with_bookings(
     Returns:
         (预订记录列表, 总数)
     """
+    # 🔥 先自动清理过期的 confirmed 预约
+    await auto_complete_expired_bookings(db)
+    
     # 查询总数 - 查询所有状态的预约
     count_result = await db.execute(
         select(func.count(MeetingBooking.id)).where(

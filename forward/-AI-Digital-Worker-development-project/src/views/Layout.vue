@@ -53,6 +53,55 @@
       <!-- 路由视图 -->
       <router-view />
     </div>
+    
+    <!-- 任务选择对话框 -->
+    <el-dialog
+      v-model="showTodoSelectDialog"
+      title="📋 请选择要完成的任务"
+      width="600px"
+      :close-on-click-modal="false"
+    >
+      <div class="todo-select-list">
+        <el-table
+          :data="todoCandidates"
+          style="width: 100%"
+          highlight-current-row
+          @current-change="handleTodoSelect"
+        >
+          <el-table-column label="选择" width="80">
+            <template #default="scope">
+              <el-radio
+                v-model="selectedTodoId"
+                :label="scope.row.id"
+              >
+                &nbsp;
+              </el-radio>
+            </template>
+          </el-table-column>
+          <el-table-column prop="title" label="任务标题" min-width="150" />
+          <el-table-column prop="due_date" label="截止时间" width="160">
+            <template #default="scope">
+              {{ formatDueDate(scope.row.due_date) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="priority" label="优先级" width="100">
+            <template #default="scope">
+              <el-tag :type="getPriorityType(scope.row.priority)" size="small">
+                {{ getPriorityText(scope.row.priority) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="cancelTodoSelect">取消</el-button>
+          <el-button type="primary" @click="confirmTodoComplete" :disabled="!selectedTodoId">
+            确认完成
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -65,6 +114,11 @@ import { chatWithAgent } from '@/api/modules/agent'
 
 const router = useRouter()
 const nlpCommand = ref('')
+
+// 任务选择对话框相关
+const showTodoSelectDialog = ref(false)
+const todoCandidates = ref([])
+const selectedTodoId = ref(null)
 
 // 用户信息
 const userInfo = ref({
@@ -125,6 +179,83 @@ const loadUserInfo = () => {
   }
 }
 
+// 任务选择对话框相关方法
+const handleTodoSelect = (row) => {
+  if (row) {
+    selectedTodoId.value = row.id
+  }
+}
+
+const cancelTodoSelect = () => {
+  showTodoSelectDialog.value = false
+  todoCandidates.value = []
+  selectedTodoId.value = null
+}
+
+const formatDueDate = (dueDate) => {
+  if (!dueDate) return '无'
+  const date = new Date(dueDate)
+  return date.toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const getPriorityType = (priority) => {
+  const types = {
+    high: 'danger',
+    medium: 'warning',
+    low: 'info'
+  }
+  return types[priority] || 'info'
+}
+
+const getPriorityText = (priority) => {
+  const texts = {
+    high: '高',
+    medium: '中',
+    low: '低'
+  }
+  return texts[priority] || priority
+}
+
+const confirmTodoComplete = async () => {
+  if (!selectedTodoId.value) return
+
+  try {
+    // 调用 API 完成任务
+    const { updateTodoStatus } = await import('@/api/modules/todo')
+    const completionTime = new Date().toISOString()
+    
+    await updateTodoStatus(selectedTodoId.value, 'completed', completionTime)
+    
+    ElMessage.success('任务已标记为完成！')
+    
+    // 关闭对话框
+    showTodoSelectDialog.value = false
+    todoCandidates.value = []
+    selectedTodoId.value = null
+    
+    // 刷新当前页面数据（如果在 Todo 页面）
+    if (router.currentRoute.value.path === '/todo') {
+      router.push({ path: '/todo', query: { refresh: true, t: Date.now() } })
+    }
+  } catch (error) {
+    console.error('完成任务失败:', error)
+    ElMessage.error('完成任务失败，请重试')
+  }
+}
+
+// 监听自定义事件
+const handleShowTodoSelectDialog = (event) => {
+  const { candidates, message } = event.detail
+  todoCandidates.value = candidates || []
+  selectedTodoId.value = null
+  showTodoSelectDialog.value = true
+}
+
 // 自然语言指令处理
 const handleNlpCommand = async () => {
   const cmd = nlpCommand.value.trim()
@@ -151,7 +282,22 @@ const handleNlpCommand = async () => {
     loadingInstance.close()
 
     // 根据执行结果和任务类型显示对应消息和跳转
-    if (result.execution_result && result.execution_result.success) {
+    if (result.execution_result && result.execution_result.action === 'select_todo') {
+      // 需要用户选择任务 - 存储到 sessionStorage 并触发事件
+      sessionStorage.setItem('todo_candidates', JSON.stringify(result.execution_result.candidates || []))
+      
+      // 触发自定义事件，通知当前页面显示对话框
+      window.dispatchEvent(new CustomEvent('showTodoSelectDialog', {
+        detail: {
+          candidates: result.execution_result.candidates,
+          message: result.response
+        }
+      }))
+      
+      // 清空输入
+      nlpCommand.value = ''
+      return
+    } else if (result.execution_result && result.execution_result.success) {
       // 操作成功
       if (result.task_type === 'todo') {
         ElMessage.success({
@@ -248,6 +394,9 @@ const handleNlpCommand = async () => {
 
 onMounted(() => {
   loadUserInfo()
+  
+  // 监听任务选择对话框事件
+  window.addEventListener('showTodoSelectDialog', handleShowTodoSelectDialog)
 })
 </script>
 
