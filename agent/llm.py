@@ -30,10 +30,11 @@ def get_qwen_llm(temperature=0.7):
             "请设置环境变量或在代码中配置 API 密钥。"
         )
     llm = ChatTongyi(
-        model="qwen-plus-2025-07-28",
+        model="deepseek-v3.1",  # 使用通义千问 Plus 模型
         api_key=api_key,
         temperature=temperature,
-        max_tokens=512,  # 最大生成token数
+        max_tokens=1024,  # 增加最大生成token数，确保答案完整
+        model_kwargs={"enable_thinking": False}  # 禁用思考模式，适配非流式调用
     )
     
     return llm

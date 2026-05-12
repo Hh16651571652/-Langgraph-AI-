@@ -105,33 +105,31 @@ class ChatAgent:
             retriever = get_retriever()
             
             # 检查是否有相关文档
-            is_relevant = retriever.is_relevant(message, threshold=0.4)
+            is_relevant = await retriever.is_relevant(message, threshold=0.4)
             
             if not is_relevant:
                 print(f"[ChatAgent] ❌ 未找到相关文档，降级为普通对话")
                 return await self._process_normal_chat(message, history_context)
             
-            # 检索相关文档
-            context = retriever.retrieve_with_context(message, top_k=3)
+            # 检索相关文档（使用优化后的检索）
+            context = await retriever.retrieve_with_context(message, top_k=3, use_query_optimization=True)
             print(f"[ChatAgent] ✅ 检索到相关文档，上下文长度: {len(context)}字符")
             
             # 构建RAG Prompt
-            rag_prompt = f"""你是一个专业的企业助手，基于公司内部文档回答员工问题。
+            rag_prompt = f"""你是一个专业的企业知识库助手。请基于以下提供的公司内部文档内容，准确回答员工问题。
 
-请严格基于以下提供的文档内容回答问题。如果文档中没有相关信息，请明确说明"根据现有文档，我无法回答这个问题"。
+## 重要原则：
+1. **严格基于文档**：只使用提供的文档内容回答，绝不编造信息
+2. **完整性**：如果文档中有多个相关要点，确保全部覆盖
+3. **引用来源**：在回答中注明参考的文档名称
+4. **结构化表达**：使用清晰的标题和分点，重要信息加粗
+5. **诚实回应**：如果文档中没有相关信息，明确说明
 
 ## 相关文档内容：
 {context}
 
 ## 用户问题：
 {message}
-
-## 回答要求：
-1. 只基于上述文档内容回答，不要编造信息
-2. 如果文档中有明确的步骤或流程，请清晰列出
-3. 引用文档来源（文件名）
-4. 保持回答简洁、专业、友好
-5. 如果问题涉及多个方面，分点回答
 
 请开始回答："""
             

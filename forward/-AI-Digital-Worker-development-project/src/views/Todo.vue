@@ -408,24 +408,27 @@ const fetchTodoStats = async () => {
     // API拦截器已经提取了response.data.data,所以response直接是对象
     const statsData = response || {}
     
-    // 只统计"进行中"的任务(排除已完成和逾期)
+    // 只统计"进行中"和"已完成"的任务(排除逾期)
     const ongoingTasks = todoList.value.filter(task => task.status === '进行中')
     const completedTasks = todoList.value.filter(task => task.status === '已完成')
+    const overdueTasks = todoList.value.filter(task => task.status === '逾期')
     
-    // 计算完成率: 已完成数量 / (进行中 + 已完成)
-    const totalActiveTasks = ongoingTasks.length + completedTasks.length
-    const completionRate = totalActiveTasks > 0 ? Math.round((completedTasks.length / totalActiveTasks) * 100) : 0
+    // 计算完成率: (总任务数 - 逾期 - 未完成) / 总任务数
+    // 即: 1 - (逾期 + 未完成) / 总数
+    const totalTasks = todoList.value.length
+    const incompleteTasks = ongoingTasks.length + overdueTasks.length
+    const completionRate = totalTasks > 0 ? Math.round(((totalTasks - incompleteTasks) / totalTasks) * 100) : 0
     
-    // 生成建议文案 - 只针对进行中的任务
+    // 生成建议文案 - 针对所有未完成任务
     let suggestion = ''
-    if (ongoingTasks.length === 0) {
-      if (completedTasks.length > 0) {
-        suggestion = '太棒了！所有任务都已完成 🎉'
-      } else {
-        suggestion = '暂无任务，添加一个新任务吧 ✨'
-      }
-    } else {
+    if (totalTasks === 0) {
+      suggestion = '暂无任务，添加一个新任务吧 ✨'
+    } else if (overdueTasks.length > 0) {
+      suggestion = `有${overdueTasks.length}个任务已逾期，请优先处理 ⚠️`
+    } else if (ongoingTasks.length > 0) {
       suggestion = `还有${ongoingTasks.length}个任务未完成，快加油吧 💪`
+    } else {
+      suggestion = '太棒了！所有任务都已完成 🎉'
     }
     
     todoStats.value = {

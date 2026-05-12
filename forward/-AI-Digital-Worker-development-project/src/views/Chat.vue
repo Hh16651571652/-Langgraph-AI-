@@ -144,18 +144,6 @@
           </el-input>
         </div>
 
-        <!-- 快捷指令 -->
-        <div class="quick-actions">
-          <el-button
-            v-for="action in quickActions"
-            :key="action.key"
-            size="small"
-            @click="useQuickAction(action)"
-            :disabled="isLoading"
-          >
-            {{ action.label }}
-          </el-button>
-        </div>
       </div>
     </div>
   </div>
@@ -171,13 +159,6 @@ const userInput = ref('')
 const isLoading = ref(false)
 const messagesContainer = ref(null)
 const sessionId = ref(localStorage.getItem('agent_session_id') || null)
-
-const quickActions = [
-  { key: 'greet', label: '👋 打个招呼', text: '你好' },
-  { key: 'help', label: '❓ 你能做什么', text: '你能帮我什么' },
-  { key: 'joke', label: '😄 讲个笑话', text: '给我讲个笑话' },
-  { key: 'weather', label: '🌤️ 查天气', text: '今天天气怎么样' }
-]
 
 // 加载历史消息
 const loadHistory = async () => {
@@ -284,11 +265,6 @@ const sendMessage = async () => {
     isLoading.value = false
     scrollToBottom()
   }
-}
-
-const useQuickAction = (action) => {
-  userInput.value = action.text
-  sendMessage()
 }
 
 const formatMessage = (text) => {
@@ -543,8 +519,9 @@ onMounted(() => {
 
 <style scoped>
 .chat-page {
-  height: calc(100vh - 140px);
+  height: calc(100vh - 60px); /* Chat页面占满剩余空间 */
   padding: 0;
+  margin: 0;
 }
 
 .chat-container {

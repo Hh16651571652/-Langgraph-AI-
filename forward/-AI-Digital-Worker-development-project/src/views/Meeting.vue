@@ -124,30 +124,6 @@
 
 
 
-    <!-- NLP智能指令输入框 -->
-    <div class="card" style="margin-top: 20px;">
-      <div class="card-header">
-        <h3>🤖 智能指令</h3>
-      </div>
-      <div style="padding: 15px;">
-        <el-input
-          v-model="nlpCommandInput"
-          placeholder="例如: 明天下午3点预定一个能容纳10人的会议室，需要投影仪 | 取消明天D101的预约"
-          clearable
-          @keyup.enter="handleNLPCommand"
-        >
-          <template #append>
-            <el-button type="primary" @click="handleNLPCommand" :loading="nlpLoading">
-              <el-icon><Promotion /></el-icon>
-              发送
-            </el-button>
-          </template>
-        </el-input>
-        <div style="margin-top: 10px; font-size: 12px; color: #909399;">
-          💡 提示: 可以说“预定”、“取消”或“完成”会议室预约
-        </div>
-      </div>
-    </div>
 
     <!-- NLP确认弹窗(取消/完成) -->
     <el-dialog 

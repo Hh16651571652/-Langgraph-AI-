@@ -34,8 +34,23 @@
 - 基于向量数据库的智能检索
 - 支持公司政策、流程、制度查询
 - ChromaDB 向量存储
-- DashScope 文本嵌入
+- BGE 中文 Embedding 模型（本地部署）
+- 混合检索（语义 + 关键词 BM25）
+- Cross-Encoder 重排序
+- 查询扩展技术
 - 智能判断是否需要检索
+
+### 📊 RAGAS 评估系统
+- 自动化 RAG 系统质量评估
+- 69 个问题的标准测试集
+- 6 大评估指标：
+  - Context Precision（上下文精确率）
+  - Context Recall（上下文召回率）
+  - Faithfulness（忠诚度/无幻觉）
+  - Answer Relevancy（答案相关性）
+  - Answer Similarity（答案相似度）
+  - Answer Correctness（答案准确性）
+- 持续优化与迭代
 
 ### 💬 对话历史
 - 完整的对话记录
@@ -46,11 +61,14 @@
 
 ### 后端
 - **框架**: FastAPI + Uvicorn
-- **AI**: LangChain + ChatTongyi (通义千问 qwen-plus)
+- **AI**: LangChain + ChatTongyi (通义千问)
 - **数据库**: SQLite + SQLAlchemy (异步)
 - **向量数据库**: ChromaDB
+- **Embedding 模型**: BAAI/bge-base-zh-v1.5 (本地)
+- **重排序模型**: BAAI/bge-reranker-base (本地)
 - **认证**: Session Token (数据库存储)
 - **MCP**: 阿里云通义千问 MCP 服务
+- **评估框架**: RAGAS
 
 ### 前端
 - **框架**: Vue 3 + Vite
@@ -127,9 +145,17 @@ project/
 │   └── langgraph_workflow.py # LangGraph 工作流
 ├── RAG/                    # RAG 检索增强生成模块
 │   ├── vector_db.py       # 向量数据库管理
-│   ├── retriever.py       # 检索器
+│   ├── retriever.py       # 检索器（混合检索+重排序）
+│   ├── reranker.py        # Cross-Encoder 重排序
+│   ├── query_expansion.py # 查询扩展
 │   ├── init_rag.py        # 初始化脚本
 │   └── chroma_db/         # ChromaDB 数据存储
+├── RAG_eval/               # RAGAS 评估系统
+│   ├── ragas_evaluator.py # 评估器核心
+│   ├── evaluation_dataset.py # 测试数据集（69个问题）
+│   ├── run_eval.py        # 评估运行脚本
+│   ├── fix_nan_results.py # NaN修复工具
+│   └── results/           # 评估结果（不上传git）
 ├── DATA/                   # 企业知识库文档 (Markdown格式)
 ├── routers/               # API 路由
 │   ├── agent.py          # Agent 接口
@@ -158,6 +184,7 @@ project/
 
 ## 🧪 测试
 
+### 单元测试和集成测试
 ```bash
 # 运行所有测试
 cd parttest
@@ -169,6 +196,21 @@ python -m pytest unit/
 # 运行集成测试
 python -m pytest integration/
 ```
+
+### RAGAS 评估
+```bash
+# 运行 RAGAS 评估（需要安装评估依赖）
+pip install -r RAG_eval/requirements_eval.txt
+
+# 启动评估
+cd RAG_eval
+python run_eval.py
+
+# 查看评估结果
+# 结果保存在 RAG_eval/results/ 目录下
+```
+
+详细评估说明请查看 [RAG_eval/README.md](./RAG_eval/README.md)
 
 ## 📊 系统架构
 
@@ -188,8 +230,10 @@ python -m pytest integration/
 - ✅ `.env` 文件已加入 `.gitignore`
 - ✅ 使用 Session Token 进行身份认证（数据库存储）
 - ✅ 密码使用 SHA256 哈希存储
+- ✅ RAGAS 评估结果不上传到 Git
 - ⚠️ **DATA/** 目录包含企业内部文档，请根据实际情况决定是否上传
-- ⚠️ **RAG/chroma_db/** 目录为向量数据库，建议不上传到公开仓库
+- ⚠️ **RAG/chroma_db/** 目录为向量数据库，已加入 `.gitignore`
+- ⚠️ **RAG_eval/results/** 目录为评估结果，已加入 `.gitignore`
 
 **重要**: 请勿将 `.env` 文件或 API 密钥提交到版本控制系统！
 

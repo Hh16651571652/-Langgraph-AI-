@@ -4,14 +4,18 @@ RAG 向量数据库模块
 """
 import os
 import hashlib
+import urllib3
 from typing import List, Dict, Optional
 from pathlib import Path
 import chromadb
 from chromadb.config import Settings
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import DashScopeEmbeddings
+from langchain_community.embeddings import HuggingFaceBgeEmbeddings
 from dotenv import load_dotenv
+
+# 禁用SSL警告（开发环境）
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 load_dotenv()
 
@@ -41,18 +45,21 @@ class VectorDatabase:
             metadata={"description": "Company documents for RAG"}
         )
         
-        # 初始化嵌入模型（使用阿里云DashScope）
-        self.embeddings = DashScopeEmbeddings(
-            model="text-embedding-v2",
-            dashscope_api_key=os.getenv("DASHSCOPE_API_KEY")
+        # 初始化嵌入模型（使用 BGE 中文模型）
+        print("[VectorDB] 正在加载 BGE 中文 Embedding 模型...")
+        self.embeddings = HuggingFaceBgeEmbeddings(
+            model_name="BAAI/bge-base-zh-v1.5",  # 使用 base 版本，更小更快
+            model_kwargs={'device': 'cpu'},  # 使用CPU，如有GPU可改为'cuda'
+            encode_kwargs={'normalize_embeddings': True}  # 标准化嵌入向量
         )
+        print("[VectorDB] ✅ BGE 模型加载完成")
         
-        # 文本分割器
+        # 文本分割器 - 针对FAQ格式优化
         self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=500,      # 每个chunk的字符数
-            chunk_overlap=50,    # chunk之间的重叠字符数
+            chunk_size=1000,     # 增加chunk大小，容纳完整问答对
+            chunk_overlap=100,   # 保持适当重叠
             length_function=len,
-            separators=["\n\n", "\n", " ", ""]
+            separators=["\n\n## ", "\n\n", "\n", "。", "！", "？"]  # 优先按章节和段落分割
         )
         
         print(f"[VectorDB] 向量数据库初始化完成，当前文档数: {self.collection.count()}")

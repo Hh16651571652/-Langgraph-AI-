@@ -27,8 +27,8 @@
     <!-- 右侧主内容 -->
     <div class="main-content">
       <!-- 顶部导航栏 -->
-      <div class="top-navbar">
-        <!-- 全局自然语言输入栏 -->
+      <div class="top-navbar" v-if="$route.path !== '/chat'">
+        <!-- 全局自然语言输入栏（Chat页面不显示） -->
         <div class="nlp-bar">
           <i>💬</i>
           <input 
@@ -38,15 +38,6 @@
             @keyup.enter="handleNlpCommand"
           >
           <button @click="handleNlpCommand">发送指令</button>
-        </div>
-        
-        <!-- 用户信息区域 -->
-        <div class="user-area-top">
-          <div class="user-info-top">
-            <div class="user-details-top">
-              <div class="username-top">{{ userInfo.username || '用户' }}</div>
-            </div>
-          </div>
         </div>
       </div>
       
@@ -109,7 +100,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
-import { logout } from '@/api/modules/auth'
 import { chatWithAgent } from '@/api/modules/agent'
 
 const router = useRouter()
@@ -120,64 +110,11 @@ const showTodoSelectDialog = ref(false)
 const todoCandidates = ref([])
 const selectedTodoId = ref(null)
 
-// 用户信息
-const userInfo = ref({
-  username: '',
-  loginTime: ''
-})
-
 // 获取菜单路由
 const menuRoutes = computed(() => {
   const mainRoute = router.options.routes.find(route => route.path === '/')
   return mainRoute?.children || []
 })
-
-// 格式化登录时间
-const formatLoginTime = (loginTime) => {
-  if (!loginTime) return '未登录'
-  
-  const date = new Date(loginTime)
-  return `登录于 ${date.toLocaleDateString()} ${date.toLocaleTimeString()}`
-}
-
-// 处理退出登录
-const handleLogout = async () => {
-  try {
-    await ElMessageBox.confirm(
-      '确定要退出登录吗？',
-      '退出确认',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-    
-    // 调用退出登录API
-    await logout()
-    
-    // 清除本地存储
-    localStorage.removeItem('userInfo')
-    document.cookie = 'token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-    
-    ElMessage.success('退出登录成功')
-    
-    // 跳转到登录页
-    router.push('/login')
-  } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('退出登录失败')
-    }
-  }
-}
-
-// 加载用户信息
-const loadUserInfo = () => {
-  const storedUserInfo = localStorage.getItem('userInfo')
-  if (storedUserInfo) {
-    userInfo.value = JSON.parse(storedUserInfo)
-  }
-}
 
 // 任务选择对话框相关方法
 const handleTodoSelect = (row) => {
@@ -405,8 +342,6 @@ const handleNlpCommand = async () => {
 }
 
 onMounted(() => {
-  loadUserInfo()
-  
   // 监听任务选择对话框事件
   window.addEventListener('showTodoSelectDialog', handleShowTodoSelectDialog)
 })
@@ -487,57 +422,6 @@ onMounted(() => {
   color: var(--primary);
 }
 
-/* 顶部用户信息区域 */
-.user-area-top {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-left: 24px;
-  min-width: 200px;
-  justify-content: flex-end;
-}
-
-.user-info-top {
-  display: flex;
-  align-items: center;
-  padding: 8px 16px;
-  background: #f8f9fa;
-  border-radius: 20px;
-  border: 1px solid #eef2ff;
-}
-
-.user-details-top {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  align-items: center;
-}
-
-.username-top {
-  font-weight: 600;
-  color: #374151;
-  font-size: 0.85rem;
-}
-
-.login-time-top {
-  font-size: 0.7rem;
-  color: #6b7280;
-}
-
-.logout-btn-top {
-  color: #6b7280 !important;
-  font-size: 0.8rem;
-  padding: 6px 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-}
-
-.logout-btn-top:hover {
-  color: #ef4444 !important;
-  border-color: #ef4444;
-  background: #fef2f2 !important;
-}
-
 /* 顶部导航栏 */
 .top-navbar {
   display: flex;
@@ -553,6 +437,11 @@ onMounted(() => {
   flex: 1;
   padding: 24px 32px;
   overflow-y: auto;
+}
+
+/* Chat页面特殊样式 - 减少顶部padding */
+.main-content:has(.chat-page) {
+  padding-top: 8px;
 }
 
 /* 顶部自然语言交互条 */
