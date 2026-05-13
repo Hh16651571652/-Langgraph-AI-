@@ -54,3 +54,14 @@ export const verifyToken = () => {
 export const refreshToken = () => {
   return api.post('/auth/refresh')
 }
+
+/**
+ * 更新当前用户信息
+ * @param {Object} data - 更新数据
+ * @param {string} data.email - 邮箱地址（可选）
+ * @param {string} data.description - 个人描述/标签（可选）
+ * @returns {Promise}
+ */
+export const updateUserInfo = (data) => {
+  return api.put('/auth/me', data)
+}

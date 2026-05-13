@@ -19,7 +19,7 @@ class User(Base):
     username = Column(String(50), unique=True, nullable=False, index=True, comment="用户名(唯一)")
     password_hash = Column(String(255), nullable=False, comment="密码哈希值(SHA256)")
     email = Column(String(100), unique=True, index=True, comment="邮箱地址")
-    phone = Column(String(20), comment="手机号")
+    description = Column(String(100), comment="个人描述/标签")
     avatar_url = Column(String(255), comment="头像URL")
     
     # 权限和状态

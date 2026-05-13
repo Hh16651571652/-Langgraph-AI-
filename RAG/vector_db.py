@@ -17,6 +17,9 @@ from dotenv import load_dotenv
 # 禁用SSL警告（开发环境）
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# 设置 HuggingFace 镜像源（国内加速）
+os.environ['HF_ENDPOINT'] = 'https://hf-mirror.com'
+
 load_dotenv()
 
 
@@ -54,12 +57,23 @@ class VectorDatabase:
         )
         print("[VectorDB] ✅ BGE 模型加载完成")
         
-        # 文本分割器 - 针对FAQ格式优化
+        # 文本分割器 - 针对FAQ格式深度优化（最终版）
         self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=1000,     # 增加chunk大小，容纳完整问答对
-            chunk_overlap=100,   # 保持适当重叠
+            chunk_size=500,      # 进一步减小chunk，确保每个chunk只包含1-3个问答对
+            chunk_overlap=80,    # 适当重叠，保持上下文连贯但不过多冗余
             length_function=len,
-            separators=["\n\n## ", "\n\n", "\n", "。", "！", "？"]  # 优先按章节和段落分割
+            separators=[
+                "\n\n## ",      # 优先按大章节分割（最高优先级）
+                "\n\n",         # 其次按段落/问答对之间的空行分割
+                "\n答：",       # 关键：在答案后分割，保持问答完整性
+                "\n",           # 按行分割
+                "。",           # 按句号分割
+                "！",           # 按感叹号分割
+                "？",           # 按问号分割
+                "；",           # 按分号分割
+                "，",           # 按逗号分割
+                " "             # 最后按空格分割
+            ]
         )
         
         print(f"[VectorDB] 向量数据库初始化完成，当前文档数: {self.collection.count()}")

@@ -39,6 +39,40 @@ from RAG.retriever import get_retriever
 from agent.llm import get_qwen_llm
 
 
+def load_ragas_prompt() -> str:
+    """
+    从文件加载 RAGAS 评估用的 Prompt 模板
+    
+    Returns:
+        Prompt 模板字符串
+    """
+    prompt_file = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        'prompt',
+        'ragas_evaluator.txt'
+    )
+    
+    try:
+        with open(prompt_file, 'r', encoding='utf-8') as f:
+            return f.read()
+    except FileNotFoundError:
+        print(f"⚠️ 警告: 未找到 Prompt 文件 {prompt_file}，使用默认模板")
+        return """请基于以下文档内容，简洁直接地回答问题。
+
+要求：
+1. 如果文档中有相关信息，请直接给出答案，不要解释
+2. 如果文档中没有相关信息，请回答“无法回答”
+3. 答案要简洁，控制在100字以内
+4. 不要添加额外的说明或总结
+
+文档内容：
+{context_text}
+
+问题：{question}
+
+答案："""
+
+
 class RAGEvaluator:
     """RAG 系统评估器"""
     
@@ -84,6 +118,9 @@ class RAGEvaluator:
         """
         print(f"\n📝 开始为 {len(questions)} 个问题生成答案...")
         
+        # 加载 Prompt 模板
+        prompt_template = load_ragas_prompt()
+        
         results = []
         for i, question in enumerate(questions, 1):
             print(f"  [{i}/{len(questions)}] 处理问题: {question[:50]}...")
@@ -99,20 +136,12 @@ class RAGEvaluator:
                 
                 # 构建 RAG prompt（最多使用5个文档）
                 context_text = "\n\n".join(contexts[:5])  # 最多使用5个文档
-                prompt = f"""请基于以下文档内容，简洁直接地回答问题。
-
-要求：
-1. 如果文档中有相关信息，请直接给出答案，不要解释
-2. 如果文档中没有相关信息，请回答“无法回答”
-3. 答案要简洁，控制在100字以内
-4. 不要添加额外的说明或总结
-
-文档内容：
-{context_text}
-
-问题：{question}
-
-答案："""
+                
+                # 使用模板生成 Prompt
+                prompt = prompt_template.format(
+                    context_text=context_text,
+                    question=question
+                )
                 
                 # 调用 LLM 生成答案
                 response = self.llm.invoke(prompt)

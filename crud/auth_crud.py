@@ -25,6 +25,56 @@ async def get_user_by_username(db: AsyncSession, username: str) -> User | None:
     return result.scalar_one_or_none()
 
 
+async def get_user_by_id(db: AsyncSession, user_id: int) -> User | None:
+    """
+    根据用户ID查询用户
+    
+    Args:
+        db: 数据库会话
+        user_id: 用户ID
+        
+    Returns:
+        User对象或None
+    """
+    result = await db.execute(
+        select(User).where(User.id == user_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def update_user_info(db: AsyncSession, user_id: int, email: str = None, description: str = None) -> User | None:
+    """
+    更新用户信息（邮箱和个人标签）
+    
+    Args:
+        db: 数据库会话
+        user_id: 用户ID
+        email: 邮箱地址（可选）
+        description: 个人标签（可选）
+        
+    Returns:
+        更新后的User对象或None
+    """
+    result = await db.execute(
+        select(User).where(User.id == user_id)
+    )
+    user = result.scalar_one_or_none()
+    
+    if not user:
+        return None
+    
+    # 更新字段
+    if email is not None:
+        user.email = email if email else None
+    if description is not None:
+        user.description = description if description else None
+    
+    await db.commit()
+    await db.refresh(user)
+    
+    return user
+
+
 async def update_user_last_login(db: AsyncSession, user: User) -> None:
     """
     更新用户最后登录时间

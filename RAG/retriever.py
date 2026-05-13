@@ -73,20 +73,20 @@ class RAGRetriever:
         # 对每个扩展查询进行检索并合并结果
         all_results = []
         for exp_query in expanded_queries:
-            # 执行混合检索
+            # 执行混合检索 - 优化权重配置
             if self.use_hybrid and self.hybrid_retriever:
                 results = self.hybrid_retriever.hybrid_search(
                     query=exp_query,
-                    top_k=top_k * 2,
+                    top_k=top_k * 3,  # 扩大候选集，为重排序提供更多选择
                     filter_category=filter_category,
-                    vector_weight=0.7,  # 语义权重调整为0.7
-                    bm25_weight=0.3     # 关键词权重提升为0.3
+                    vector_weight=0.6,  # 语义权重：平衡语义和关键词
+                    bm25_weight=0.4     # 关键词权重：提升精确匹配能力
                 )
             else:
                 # 纯向量检索
                 results = self.vector_db.search(
                     query=exp_query,
-                    n_results=top_k * 2,
+                    n_results=top_k * 3,
                     filter_category=filter_category
                 )
             all_results.extend(results)
@@ -104,15 +104,15 @@ class RAGRetriever:
         
         print(f"[RAGRetriever] 去重后 {len(unique_results)} 个结果")
         
-        # 重排序
+        # 重排序 - 使用Cross-Encoder精排
         if self.use_rerank and self.reranker and len(unique_results) > 0:
             unique_results = self.reranker.rerank(query, unique_results, top_k=top_k * 2)
             print(f"[RAGRetriever] 完成重排序")
         
-        # 过滤低相关性结果
+        # 过滤低相关性结果 - 提高阈值确保质量
         filtered_results = [
             r for r in unique_results 
-            if r.get('hybrid_score', r.get('rerank_score', r.get('relevance_score', 0))) >= min_relevance_score
+            if r.get('rerank_score', r.get('hybrid_score', r.get('relevance_score', 0))) >= min_relevance_score
         ]
         
         # 按相关性排序并截取top_k
@@ -142,7 +142,7 @@ class RAGRetriever:
                               top_k: int = 3,
                               include_metadata: bool = True) -> str:
         """
-        检索并格式化上下文
+        检索并格式化上下文（优化版，适配混合检索+重排序）
         
         Args:
             query: 查询文本
@@ -157,7 +157,7 @@ class RAGRetriever:
         if not results:
             return "未找到相关文档。"
         
-        # 构建上下文
+        # 构建上下文 - 优化格式，突出显示相关性分数和来源
         context_parts = []
         for i, result in enumerate(results, 1):
             metadata = result.get('metadata', {})
@@ -165,17 +165,19 @@ class RAGRetriever:
             filename = metadata.get('filename', '未知文件')
             content = result.get('content', '')
             
-            # 获取相关性分数
+            # 获取相关性分数（优先使用重排序分数）
             score = result.get('rerank_score', result.get('hybrid_score', result.get('relevance_score', 0)))
             
             if include_metadata:
+                # 优化格式：更清晰的元数据展示
                 context_parts.append(
-                    f"[文档 {i}] (相关性: {score:.2f}) ({category}/{filename})\n{content}"
+                    f"【文档 {i}】来源：{category}/{filename} | 相关性：{score:.3f}\n{content}"
                 )
             else:
                 context_parts.append(content)
         
-        return "\n\n".join(context_parts)
+        # 使用清晰的分隔符连接多个文档
+        return "\n\n" + "="*60 + "\n\n".join(context_parts)
     
     async def is_relevant(self, query: str, threshold: float = 0.4) -> bool:
         """

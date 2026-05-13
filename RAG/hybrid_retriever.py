@@ -113,28 +113,28 @@ class HybridRetriever:
                      query: str, 
                      top_k: int = 5,
                      filter_category: str = None,
-                     vector_weight: float = 0.7,
-                     bm25_weight: float = 0.3) -> List[Dict]:
+                     vector_weight: float = 0.6,
+                     bm25_weight: float = 0.4) -> List[Dict]:
         """
-        混合检索 - 结合向量检索和BM25检索
+        混合检索 - 结合向量检索和BM25检索（优化版）
         
         Args:
             query: 查询文本
             top_k: 返回结果数量
             filter_category: 可选的分类过滤
-            vector_weight: 向量检索权重
-            bm25_weight: BM25检索权重
+            vector_weight: 向量检索权重（默认0.6，平衡语义理解）
+            bm25_weight: BM25检索权重（默认0.4，提升精确匹配）
             
         Returns:
             混合检索结果列表
         """
-        # 获取两种检索的结果
-        vector_results = self.vector_search(query, top_k=top_k * 2, filter_category=filter_category)
-        bm25_results = self.bm25_search(query, top_k=top_k * 2)
+        # 获取两种检索的结果 - 扩大候选集
+        vector_results = self.vector_search(query, top_k=top_k * 3, filter_category=filter_category)
+        bm25_results = self.bm25_search(query, top_k=top_k * 3)
         
-        # 标准化分数
+        # 标准化分数 - 使用 Min-Max 归一化
         vector_scores = {}
-        for i, result in enumerate(vector_results):
+        for result in vector_results:
             # 使用relevance_score作为向量分数
             vector_scores[result['content']] = result.get('relevance_score', 0)
         
@@ -142,19 +142,32 @@ class HybridRetriever:
         for result in bm25_results:
             bm25_scores[result['content']] = result['bm25_score']
         
-        # 合并结果并计算加权分数
+        # 合并所有文档内容
         all_contents = set(list(vector_scores.keys()) + list(bm25_scores.keys()))
         
-        # 归一化分数到0-1范围
+        if not all_contents:
+            return []
+        
+        # Min-Max 归一化到 0-1 范围
         max_vector_score = max(vector_scores.values()) if vector_scores else 1.0
+        min_vector_score = min(vector_scores.values()) if vector_scores else 0.0
         max_bm25_score = max(bm25_scores.values()) if bm25_scores else 1.0
+        min_bm25_score = min(bm25_scores.values()) if bm25_scores else 0.0
+        
+        # 避免除零错误
+        vector_range = max_vector_score - min_vector_score if max_vector_score != min_vector_score else 1.0
+        bm25_range = max_bm25_score - min_bm25_score if max_bm25_score != min_bm25_score else 1.0
         
         combined_results = []
         for content in all_contents:
-            v_score = vector_scores.get(content, 0) / max_vector_score if max_vector_score > 0 else 0
-            b_score = bm25_scores.get(content, 0) / max_bm25_score if max_bm25_score > 0 else 0
+            # Min-Max 归一化
+            v_raw = vector_scores.get(content, min_vector_score)
+            b_raw = bm25_scores.get(content, min_bm25_score)
             
-            # 加权组合
+            v_score = (v_raw - min_vector_score) / vector_range
+            b_score = (b_raw - min_bm25_score) / bm25_range
+            
+            # 加权组合分数
             final_score = vector_weight * v_score + bm25_weight * b_score
             
             # 查找元数据
@@ -172,7 +185,7 @@ class HybridRetriever:
                 "bm25_score": b_score
             })
         
-        # 按混合分数排序并返回top_k
+        # 按混合分数降序排序并返回top_k
         combined_results.sort(key=lambda x: x['hybrid_score'], reverse=True)
         
         return combined_results[:top_k]

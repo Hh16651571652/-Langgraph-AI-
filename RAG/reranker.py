@@ -36,7 +36,7 @@ class Reranker:
                documents: List[Dict], 
                top_k: int = 5) -> List[Dict]:
         """
-        对检索结果进行重排序
+        对检索结果进行重排序（优化版）
         
         Args:
             query: 查询文本
@@ -47,10 +47,13 @@ class Reranker:
             重排序后的文档列表
         """
         if not documents:
+            print("[Reranker] ⚠️ 输入文档为空，跳过重排序")
             return []
         
+        print(f"[Reranker] 开始重排序，输入 {len(documents)} 个文档，目标输出 {top_k} 个")
+        
         if self.model is not None:
-            # 使用Cross-Encoder模型进行重排序
+            # 使用Cross-Encoder模型进行精排
             try:
                 pairs = [(query, doc['content']) for doc in documents]
                 scores = self.model.predict(pairs)
@@ -61,14 +64,21 @@ class Reranker:
                 
                 # 按重排序分数降序排列
                 reranked_docs = sorted(documents, key=lambda x: x.get('rerank_score', 0), reverse=True)
-                print(f"[Reranker] 使用Cross-Encoder重排序完成")
+                
+                # 打印前3个文档的分数供调试
+                for i, doc in enumerate(reranked_docs[:3]):
+                    print(f"  [Reranker] Top-{i+1}: score={doc['rerank_score']:.4f}, content_preview={doc['content'][:50]}...")
+                
+                print(f"[Reranker] ✅ Cross-Encoder重排序完成")
                 return reranked_docs[:top_k]
             except Exception as e:
-                print(f"[Reranker] 重排序失败，使用备用方案: {e}")
+                print(f"[Reranker] ⚠️ Cross-Encoder重排序失败，降级到基于相似度分数: {e}")
+                import traceback
+                traceback.print_exc()
                 # 降级到基于原始分数的排序
         
         # 备用方案：根据已有的分数排序
-        print("[Reranker] 使用基于相似度分数的排序")
+        print("[Reranker] 使用基于相似度分数的排序（备用方案）")
         reranked_docs = sorted(
             documents, 
             key=lambda x: x.get('hybrid_score', x.get('relevance_score', 0)), 

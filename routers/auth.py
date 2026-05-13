@@ -221,6 +221,113 @@ async def get_my_sessions(
     }
 
 
+@router.get("/me")
+async def get_current_user_info(
+    request: Request,
+    db = Depends(get_database)
+):
+    """获取当前登录用户的详细信息"""
+    # 从请求头中获取Token
+    authorization = request.headers.get("Authorization")
+    
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="未提供有效的Token")
+    
+    token = authorization[7:]
+    
+    # ✅ 验证Token并获取用户ID（使用正确的方法名）
+    session = await session_crud.get_session_by_token(db, token)
+    
+    if not session:
+        raise HTTPException(status_code=401, detail="Token无效或已过期")
+    
+    # ✅ 检查Token是否激活
+    if not session.is_active:
+        raise HTTPException(status_code=401, detail="Token已被禁用")
+    
+    # ✅ 检查Token是否过期（get_session_by_token已经过滤了过期Token，但再次确认）
+    if session.expires_at < datetime.datetime.now():
+        raise HTTPException(status_code=401, detail="Token已过期")
+    
+    # 获取用户信息
+    user = await auth_crud.get_user_by_id(db, session.user_id)
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    
+    return {
+        "code": 200,
+        "message": "获取成功",
+        "data": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email or "",
+            "description": user.description or "",  # ✅ 个人描述/标签
+            "avatar_url": user.avatar_url or "",
+            "role": user.role,
+            "created_at": user.created_at.isoformat() if user.created_at else None,
+            "updated_at": user.updated_at.isoformat() if user.updated_at else None,
+            "last_login_at": user.last_login_at.isoformat() if user.last_login_at else None
+        }
+    }
+
+
+@router.put("/me")
+async def update_current_user_info(
+    request: Request,
+    db = Depends(get_database)
+):
+    """更新当前用户的信息（邮箱和个人标签）"""
+    # 从请求头中获取Token
+    authorization = request.headers.get("Authorization")
+    
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="未提供有效的Token")
+    
+    token = authorization[7:]
+    
+    # 验证Token并获取用户ID
+    session = await session_crud.get_session_by_token(db, token)
+    
+    if not session:
+        raise HTTPException(status_code=401, detail="Token无效或已过期")
+    
+    if not session.is_active:
+        raise HTTPException(status_code=401, detail="Token已被禁用")
+    
+    # 解析请求体
+    body = await request.json()
+    email = body.get("email")
+    description = body.get("description")
+    
+    # 验证邮箱格式（如果提供了邮箱）
+    if email is not None and email != "":
+        import re
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not re.match(email_pattern, email):
+            raise HTTPException(status_code=400, detail="邮箱格式不正确")
+    
+    # ✅ 使用CRUD方法更新用户信息
+    updated_user = await auth_crud.update_user_info(
+        db=db,
+        user_id=session.user_id,
+        email=email,
+        description=description
+    )
+    
+    if not updated_user:
+        raise HTTPException(status_code=404, detail="用户不存在")
+    
+    return {
+        "code": 200,
+        "message": "更新成功",
+        "data": {
+            "email": updated_user.email or "",
+            "description": updated_user.description or ""
+        }
+    }
+
+
 @router.post("/sessions/logout-all")
 async def logout_all_sessions(
     db = Depends(get_database),

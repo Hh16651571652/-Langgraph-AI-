@@ -3,7 +3,14 @@
     <!-- 侧边栏导航 -->
     <div class="sidebar">
       <div class="logo-area">
-        <h2>🤖 AI数字员工</h2>
+        <!-- ✅ 用户账户按钮（替代原来的"AI数字员工"） -->
+        <div class="user-account-btn" @click="showUserDialog = true">
+          <div class="user-avatar">{{ userAvatar }}</div>
+          <div class="user-info">
+            <span class="user-id">{{ currentUsername }}</span>
+            <span class="user-status">在线</span>
+          </div>
+        </div>
         <p>智能协同 · 敏捷办公</p>
       </div>
       <div class="nav-menu">
@@ -93,6 +100,92 @@
         </span>
       </template>
     </el-dialog>
+    
+    <!-- ✅ 用户信息弹窗 -->
+    <el-dialog
+      v-model="showUserDialog"
+      title="👤 用户信息"
+      width="500px"
+      :close-on-click-modal="false"
+      class="user-info-dialog"
+    >
+      <div class="user-profile">
+        <!-- 头像区域 -->
+        <div class="profile-header">
+          <div class="profile-avatar-large">{{ userAvatar }}</div>
+          <div class="profile-name">{{ currentUsername }}</div>
+          <el-tag type="success" size="small">在线</el-tag>
+        </div>
+        
+        <!-- 用户详细信息 -->
+        <div class="profile-details">
+          <div class="detail-item">
+            <span class="detail-label">账号：</span>
+            <span class="detail-value">{{ currentUsername }}</span>
+          </div>
+          
+          <!-- ✅ 邮箱（可编辑） -->
+          <div class="detail-item">
+            <span class="detail-label">邮箱：</span>
+            <div class="editable-field">
+              <el-input
+                v-if="isEditingEmail"
+                v-model="editEmail"
+                placeholder="请输入邮箱地址"
+                size="small"
+                style="width: 100%;"
+                @blur="saveEmail"
+                @keyup.enter="saveEmail"
+              />
+              <div v-else class="field-display" @click="startEditEmail">
+                <span class="field-value">{{ currentUserEmail || '未设置' }}</span>
+                <el-icon class="edit-icon"><Edit /></el-icon>
+              </div>
+            </div>
+          </div>
+          
+          <!-- ✅ 个人标签（可编辑） -->
+          <div class="detail-item">
+            <span class="detail-label">个人标签：</span>
+            <div class="editable-field">
+              <el-input
+                v-if="isEditingTag"
+                v-model="editTag"
+                placeholder="请输入个人标签"
+                size="small"
+                style="width: 100%;"
+                @blur="saveTag"
+                @keyup.enter="saveTag"
+              />
+              <div v-else class="field-display" @click="startEditTag">
+                <div class="tags-container">
+                  <el-tag v-for="tag in userTags" :key="tag" size="small" style="margin-right: 8px;">
+                    {{ tag }}
+                  </el-tag>
+                  <span v-if="!userTags || userTags.length === 0" class="no-tags">暂无标签</span>
+                </div>
+                <el-icon class="edit-icon"><Edit /></el-icon>
+              </div>
+            </div>
+          </div>
+          
+          <div class="detail-item">
+            <span class="detail-label">加入时间：</span>
+            <span class="detail-value">{{ formatDate(joinDate) }}</span>
+          </div>
+        </div>
+      </div>
+      
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button type="danger" @click="handleLogout" plain>
+            <el-icon><SwitchButton /></el-icon>
+            退出登录
+          </el-button>
+          <el-button type="primary" @click="showUserDialog = false">关闭</el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -100,10 +193,25 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
+import { SwitchButton, Edit } from '@element-plus/icons-vue'
 import { chatWithAgent } from '@/api/modules/agent'
+import { getCurrentUser, logout as apiLogout, updateUserInfo } from '@/api/modules/auth'
 
 const router = useRouter()
 const nlpCommand = ref('')
+
+// ✅ 用户相关状态
+const showUserDialog = ref(false)
+const currentUsername = ref(localStorage.getItem('username') || '用户')
+const currentUserEmail = ref('')
+const userTags = ref([])
+const joinDate = ref(null)
+
+// ✅ 编辑状态
+const isEditingEmail = ref(false)
+const editEmail = ref('')
+const isEditingTag = ref(false)
+const editTag = ref('')
 
 // 任务选择对话框相关
 const showTodoSelectDialog = ref(false)
@@ -115,6 +223,150 @@ const menuRoutes = computed(() => {
   const mainRoute = router.options.routes.find(route => route.path === '/')
   return mainRoute?.children || []
 })
+
+// ✅ 计算用户头像（取用户名首字母）
+const userAvatar = computed(() => {
+  const name = currentUsername.value
+  if (!name) return 'U'
+  // 如果是中文，取第一个字；如果是英文，取第一个字母并大写
+  const firstChar = name.charAt(0)
+  return /\u4e00-\u9fa5/.test(firstChar) ? firstChar : firstChar.toUpperCase()
+})
+
+// ✅ 获取当前用户信息
+const fetchUserInfo = async () => {
+  try {
+    const userInfo = await getCurrentUser()
+    if (userInfo) {
+      currentUsername.value = userInfo.username || localStorage.getItem('username') || '用户'
+      currentUserEmail.value = userInfo.email || ''
+      // ✅ 使用 description 字段作为个人标签（如果是字符串，转换为数组）
+      const desc = userInfo.description || ''
+      userTags.value = desc ? [desc] : []
+      joinDate.value = userInfo.created_at || null
+      
+      console.log('[用户信息] 从数据库获取:', {
+        username: currentUsername.value,
+        email: currentUserEmail.value,
+        description: desc,
+        tags: userTags.value,
+        created_at: joinDate.value
+      })
+      
+      // 更新localStorage
+      localStorage.setItem('username', currentUsername.value)
+    }
+  } catch (error) {
+    console.error('获取用户信息失败:', error)
+    // 如果API调用失败，使用localStorage中的数据
+    currentUsername.value = localStorage.getItem('username') || '用户'
+  }
+}
+
+// ✅ 退出登录
+const handleLogout = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要退出登录吗？',
+      '提示',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    // 调用登出API
+    await apiLogout()
+    
+    // 清除本地存储
+    localStorage.removeItem('token')
+    localStorage.removeItem('username')
+    
+    ElMessage.success('已退出登录')
+    
+    // 跳转到登录页
+    router.push('/login')
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('退出登录失败:', error)
+      ElMessage.error('退出登录失败，请重试')
+    }
+  }
+}
+
+// ✅ 格式化日期
+const formatDate = (dateStr) => {
+  if (!dateStr) return '未知'
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+}
+
+// ✅ 邮箱编辑相关方法
+const startEditEmail = () => {
+  editEmail.value = currentUserEmail.value
+  isEditingEmail.value = true
+}
+
+const saveEmail = async () => {
+  // 如果为空，直接保存
+  if (!editEmail.value || editEmail.value.trim() === '') {
+    try {
+      await updateUserInfo({ email: '' })
+      currentUserEmail.value = ''
+      ElMessage.success('邮箱已清空')
+    } catch (error) {
+      console.error('更新邮箱失败:', error)
+      ElMessage.error('更新失败，请重试')
+    } finally {
+      isEditingEmail.value = false
+    }
+    return
+  }
+  
+  // 验证邮箱格式
+  const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+  if (!emailPattern.test(editEmail.value)) {
+    ElMessage.error('邮箱格式不正确')
+    return
+  }
+  
+  try {
+    await updateUserInfo({ email: editEmail.value })
+    currentUserEmail.value = editEmail.value
+    ElMessage.success('邮箱更新成功')
+  } catch (error) {
+    console.error('更新邮箱失败:', error)
+    ElMessage.error(error.response?.data?.detail || '更新失败，请重试')
+  } finally {
+    isEditingEmail.value = false
+  }
+}
+
+// ✅ 个人标签编辑相关方法
+const startEditTag = () => {
+  editTag.value = userTags.value.length > 0 ? userTags.value[0] : ''
+  isEditingTag.value = true
+}
+
+const saveTag = async () => {
+  const tagValue = editTag.value.trim()
+  
+  try {
+    await updateUserInfo({ description: tagValue })
+    userTags.value = tagValue ? [tagValue] : []
+    ElMessage.success(tagValue ? '标签更新成功' : '标签已清空')
+  } catch (error) {
+    console.error('更新标签失败:', error)
+    ElMessage.error('更新失败，请重试')
+  } finally {
+    isEditingTag.value = false
+  }
+}
 
 // 任务选择对话框相关方法
 const handleTodoSelect = (row) => {
@@ -344,6 +596,9 @@ const handleNlpCommand = async () => {
 onMounted(() => {
   // 监听任务选择对话框事件
   window.addEventListener('showTodoSelectDialog', handleShowTodoSelectDialog)
+  
+  // ✅ 获取用户信息
+  fetchUserInfo()
 })
 </script>
 
@@ -370,6 +625,75 @@ onMounted(() => {
   padding: 28px 20px;
   border-bottom: 1px solid #e9f0ff;
   margin-bottom: 20px;
+}
+
+/* ✅ 用户账户按钮样式 */
+.user-account-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #eef4ff, #e0edfe);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: 2px solid transparent;
+  margin-bottom: 12px;
+}
+
+.user-account-btn:hover {
+  background: linear-gradient(135deg, #e0edfe, #d0e0fd);
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(43, 110, 240, 0.15);
+}
+
+.user-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.user-id {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-status {
+  font-size: 0.75rem;
+  color: #67c23a;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.user-status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #67c23a;
+  display: inline-block;
 }
 
 .logo-area h2 {
@@ -493,6 +817,139 @@ onMounted(() => {
   .logo-area h2, .logo-area p, .nav-item span:last-child { display: none; }
   .nav-item { justify-content: center; }
   .main-content { padding: 16px; }
+  
+  /* ✅ 移动端适配用户按钮 */
+  .user-account-btn {
+    padding: 8px;
+    justify-content: center;
+  }
+  
+  .user-info {
+    display: none;
+  }
+}
+
+/* ✅ 用户信息弹窗样式 */
+.user-info-dialog :deep(.el-dialog__body) {
+  padding: 24px;
+}
+
+.user-profile {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.profile-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e9f0ff;
+}
+
+.profile-avatar-large {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(43, 110, 240, 0.2);
+}
+
+.profile-name {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #303133;
+}
+
+.profile-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.detail-item:hover {
+  background: #eef4ff;
+}
+
+.detail-label {
+  font-size: 0.9rem;
+  color: #606266;
+  font-weight: 500;
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.detail-value {
+  font-size: 0.9rem;
+  color: #303133;
+  flex: 1;
+  word-break: break-all;
+}
+
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+}
+
+.no-tags {
+  font-size: 0.85rem;
+  color: #909399;
+  font-style: italic;
+}
+
+/* ✅ 可编辑字段样式 */
+.editable-field {
+  flex: 1;
+}
+
+.field-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.field-display:hover {
+  background: #eef4ff;
+}
+
+.field-value {
+  flex: 1;
+  color: #303133;
+}
+
+.edit-icon {
+  color: var(--primary);
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.field-display:hover .edit-icon {
+  opacity: 1;
 }
 </style>
 
