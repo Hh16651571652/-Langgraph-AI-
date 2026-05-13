@@ -65,3 +65,18 @@ export const refreshToken = () => {
 export const updateUserInfo = (data) => {
   return api.put('/auth/me', data)
 }
+
+/**
+ * 上传用户头像
+ * @param {File} file - 图片文件
+ * @returns {Promise}
+ */
+export const uploadAvatar = (file) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return api.post('/upload/avatar', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  })
+}

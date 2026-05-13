@@ -42,15 +42,16 @@ async def get_user_by_id(db: AsyncSession, user_id: int) -> User | None:
     return result.scalar_one_or_none()
 
 
-async def update_user_info(db: AsyncSession, user_id: int, email: str = None, description: str = None) -> User | None:
+async def update_user_info(db: AsyncSession, user_id: int, email: str = None, description: str = None, avatar_url: str = None) -> User | None:
     """
-    更新用户信息（邮箱和个人标签）
+    更新用户信息（邮箱、个人标签和头像）
     
     Args:
         db: 数据库会话
         user_id: 用户ID
         email: 邮箱地址（可选）
         description: 个人标签（可选）
+        avatar_url: 头像URL（可选）
         
     Returns:
         更新后的User对象或None
@@ -68,6 +69,8 @@ async def update_user_info(db: AsyncSession, user_id: int, email: str = None, de
         user.email = email if email else None
     if description is not None:
         user.description = description if description else None
+    if avatar_url is not None:
+        user.avatar_url = avatar_url
     
     await db.commit()
     await db.refresh(user)

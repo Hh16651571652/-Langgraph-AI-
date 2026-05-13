@@ -382,7 +382,13 @@ const handleRegister = async () => {
 
 .login-card {
   width: 100%;
-  max-width: 360px;
+  max-width: 380px;
+  padding: 40px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   animation: cardAppear 0.6s ease-out;
 }
 
@@ -403,14 +409,15 @@ const handleRegister = async () => {
 }
 
 .login-header h2 {
-  margin: 0 0 8px 0;
-  font-size: 1.8rem;
-  font-weight: 600;
+  margin: 0 0 10px 0;
+  font-size: 2rem;
+  font-weight: 700;
   color: var(--text-primary);
   background: linear-gradient(135deg, #2b6ef0, #10b981);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  letter-spacing: -0.5px;
 }
 
 .login-header p {
@@ -461,16 +468,16 @@ const handleRegister = async () => {
 
 .login-btn {
   width: 100%;
-  background: linear-gradient(135deg, #2b6ef0, #10b981);
+  background: linear-gradient(135deg, #2b6ef0, #1a4bd6);
   border: none;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   font-weight: 600;
   font-size: 1rem;
-  letter-spacing: 0.5px;
+  letter-spacing: 1px;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
-  padding: 12px 24px;
+  padding: 14px 24px;
   box-shadow: 
     0 4px 15px rgba(43, 110, 240, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);

@@ -20,6 +20,7 @@
       title="🕐 即将逾期任务提醒" 
       width="600px"
       :close-on-click-modal="false"
+      append-to-body
     >
       <div class="reminder-content">
         <!-- 提醒统计 -->

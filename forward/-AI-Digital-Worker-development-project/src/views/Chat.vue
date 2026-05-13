@@ -527,18 +527,33 @@ onMounted(() => {
 .chat-container {
   display: flex;
   flex-direction: column;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
   overflow: hidden;
   height: 100%;
+  border: 1px solid var(--border-light);
 }
 
 .chat-header {
-  padding: 20px;
-  border-bottom: 1px solid #e4e7ed;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 24px 32px;
+  border-bottom: 1px solid var(--border-light);
+  background: linear-gradient(135deg, #2b6ef0 0%, #1a4bd6 100%);
   color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.chat-header::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -10%;
+  width: 200px;
+  height: 200px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  filter: blur(20px);
 }
 
 .chat-header h3 {
@@ -626,16 +641,24 @@ onMounted(() => {
 }
 
 .message-text {
-  background: #f5f5f5;
-  padding: 12px 16px;
-  border-radius: 18px;
-  margin-bottom: 4px;
-  line-height: 1.5;
+  background: #f1f5f9;
+  padding: 14px 20px;
+  border-radius: 20px;
+  margin-bottom: 6px;
+  line-height: 1.6;
+  font-size: 0.95rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s;
+}
+
+.message-text:hover {
+  background: #e2e8f0;
 }
 
 .user-message .message-text {
-  background: #409eff;
+  background: linear-gradient(135deg, #2b6ef0, #1a4bd6);
   color: white;
+  box-shadow: 0 4px 12px rgba(43, 110, 240, 0.25);
 }
 
 /* 会议室卡片容器（横向滚动） */
@@ -808,6 +831,24 @@ onMounted(() => {
 
 .input-container {
   margin-bottom: 12px;
+}
+
+.input-container :deep(.el-input__wrapper) {
+  border-radius: 24px;
+  padding: 8px 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s;
+}
+
+.input-container :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 4px 16px rgba(43, 110, 240, 0.15);
+}
+
+.input-container :deep(.el-button) {
+  border-radius: 20px;
+  padding: 8px 24px;
+  font-weight: 500;
+  transition: all 0.3s;
 }
 
 .quick-actions {

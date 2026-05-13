@@ -32,7 +32,10 @@
               💡 {{ room.nlp_explanation }}
             </div>
             <div class="flex-between mt-1">
-              <small>{{ room.location }}</small>
+              <small style="display: flex; align-items: center; gap: 8px;">
+                <span>{{ room.location }}</span>
+                <span v-if="room.equipment" style="color: var(--text-secondary); font-size: 0.75rem;">• {{ room.equipment }}</span>
+              </small>
               <button class="btn-sm" v-if="room.available" @click="quickBookRoomHandler(room.id)">一键预定</button>
             </div>
           </div>
@@ -130,6 +133,7 @@
       v-model="showNLPConfirmDialog" 
       :title="nlpConfirmTitle" 
       width="600px"
+      append-to-body
     >
       <div v-if="nlpMatchedBookings.length > 0">
         <p style="margin-bottom: 15px; color: #606266;">{{ nlpConfirmMessage }}</p>
@@ -170,6 +174,7 @@
       title="📚 预约历史记录" 
       width="800px"
       :close-on-click-modal="true"
+      append-to-body
     >
       <div class="history-dialog">
         <!-- 筛选工具栏 -->
@@ -856,10 +861,19 @@ onBeforeRouteUpdate(async (to, from) => {
 }
 
 .room-item {
-  background: #f9fcff;
-  border-radius: 20px;
-  padding: 12px;
-  margin-bottom: 12px;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  border: 1px solid var(--border-light);
+  transition: all 0.25s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.room-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary-light);
 }
 
 .flex-between {
@@ -869,12 +883,21 @@ onBeforeRouteUpdate(async (to, from) => {
 }
 
 .btn-sm {
-  background: #eef3ff;
+  background: linear-gradient(135deg, #eef3ff, #e0edfe);
   border: none;
   border-radius: 30px;
-  padding: 4px 12px;
+  padding: 6px 16px;
   cursor: pointer;
   color: var(--primary);
+  font-weight: 500;
+  transition: all 0.3s;
+  box-shadow: 0 2px 6px rgba(43, 110, 240, 0.1);
+}
+
+.btn-sm:hover {
+  background: linear-gradient(135deg, #e0edfe, #d0e0fd);
+  transform: scale(1.05);
+  box-shadow: 0 4px 10px rgba(43, 110, 240, 0.2);
 }
 
 .mt-1 {
@@ -961,11 +984,13 @@ onBeforeRouteUpdate(async (to, from) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
+  padding: 18px 20px;
   margin-bottom: 12px;
-  background: #f8f9fa;
-  border-radius: 12px;
-  transition: all 0.2s;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  transition: all 0.25s ease;
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
 }
 
 .completed-booking {
@@ -973,12 +998,13 @@ onBeforeRouteUpdate(async (to, from) => {
 }
 
 .cancelled-booking {
-  border-left: 4px solid #f56565;
+  border-left: 4px solid #ef4444;
 }
 
 .history-booking-item:hover {
-  background: #f1f5f9;
-  transform: translateY(-1px);
+  background: #f8fafc;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .booking-info {

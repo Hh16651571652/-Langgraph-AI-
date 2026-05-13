@@ -3,9 +3,12 @@
     <!-- 侧边栏导航 -->
     <div class="sidebar">
       <div class="logo-area">
-        <!-- ✅ 用户账户按钮（替代原来的"AI数字员工"） -->
+        <!-- ✅ 用户账户按钮（替代原来的“AI数字员工”） -->
         <div class="user-account-btn" @click="showUserDialog = true">
-          <div class="user-avatar">{{ userAvatar }}</div>
+          <div v-if="userAvatar && !/^\w$/.test(userAvatar)" class="user-avatar-img">
+            <img :src="userAvatar" alt="Avatar" />
+          </div>
+          <div v-else class="user-avatar">{{ userAvatar }}</div>
           <div class="user-info">
             <span class="user-id">{{ currentUsername }}</span>
             <span class="user-status">在线</span>
@@ -58,6 +61,7 @@
       title="📋 请选择要完成的任务"
       width="600px"
       :close-on-click-modal="false"
+      append-to-body
     >
       <div class="todo-select-list">
         <el-table
@@ -108,11 +112,27 @@
       width="500px"
       :close-on-click-modal="false"
       class="user-info-dialog"
+      append-to-body
     >
       <div class="user-profile">
         <!-- 头像区域 -->
         <div class="profile-header">
-          <div class="profile-avatar-large">{{ userAvatar }}</div>
+          <el-upload
+            class="avatar-uploader"
+            action="#"
+            :show-file-list="false"
+            :auto-upload="false"
+            :on-change="handleAvatarChange"
+          >
+            <div v-if="userAvatar && !/^\w$/.test(userAvatar)" class="profile-avatar-large-img">
+              <img :src="userAvatar" alt="Avatar" />
+            </div>
+            <div v-else class="profile-avatar-large">{{ userAvatar }}</div>
+            <div class="upload-overlay">
+              <el-icon><Edit /></el-icon>
+              <span>更换头像</span>
+            </div>
+          </el-upload>
           <div class="profile-name">{{ currentUsername }}</div>
           <el-tag type="success" size="small">在线</el-tag>
         </div>
@@ -195,7 +215,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { SwitchButton, Edit } from '@element-plus/icons-vue'
 import { chatWithAgent } from '@/api/modules/agent'
-import { getCurrentUser, logout as apiLogout, updateUserInfo } from '@/api/modules/auth'
+import { getCurrentUser, logout as apiLogout, updateUserInfo, uploadAvatar } from '@/api/modules/auth'
 
 const router = useRouter()
 const nlpCommand = ref('')
@@ -206,6 +226,7 @@ const currentUsername = ref(localStorage.getItem('username') || '用户')
 const currentUserEmail = ref('')
 const userTags = ref([])
 const joinDate = ref(null)
+const avatarUrl = ref('') // 头像URL
 
 // ✅ 编辑状态
 const isEditingEmail = ref(false)
@@ -224,11 +245,15 @@ const menuRoutes = computed(() => {
   return mainRoute?.children || []
 })
 
-// ✅ 计算用户头像（取用户名首字母）
+// ✅ 计算用户头像（优先显示上传的头像，否则显示首字母）
 const userAvatar = computed(() => {
+  if (avatarUrl.value) {
+    // 如果已经是完整URL则直接使用，否则拼接后端地址
+    const url = avatarUrl.value.startsWith('http') ? avatarUrl.value : `http://localhost:8080${avatarUrl.value}`
+    return `${url}?t=${Date.now()}` // 加时间戳防止缓存
+  }
   const name = currentUsername.value
   if (!name) return 'U'
-  // 如果是中文，取第一个字；如果是英文，取第一个字母并大写
   const firstChar = name.charAt(0)
   return /\u4e00-\u9fa5/.test(firstChar) ? firstChar : firstChar.toUpperCase()
 })
@@ -240,6 +265,7 @@ const fetchUserInfo = async () => {
     if (userInfo) {
       currentUsername.value = userInfo.username || localStorage.getItem('username') || '用户'
       currentUserEmail.value = userInfo.email || ''
+      avatarUrl.value = userInfo.avatar_url || ''
       // ✅ 使用 description 字段作为个人标签（如果是字符串，转换为数组）
       const desc = userInfo.description || ''
       userTags.value = desc ? [desc] : []
@@ -248,6 +274,7 @@ const fetchUserInfo = async () => {
       console.log('[用户信息] 从数据库获取:', {
         username: currentUsername.value,
         email: currentUserEmail.value,
+        avatar: avatarUrl.value,
         description: desc,
         tags: userTags.value,
         created_at: joinDate.value
@@ -304,6 +331,36 @@ const formatDate = (dateStr) => {
     month: 'long',
     day: 'numeric'
   })
+}
+
+// ✅ 处理头像上传
+const handleAvatarChange = async (file) => {
+  try {
+    // 校验文件大小 (2MB)
+    const isLt2M = file.size / 1024 / 1024 < 2
+    if (!isLt2M) {
+      ElMessage.error('头像大小不能超过 2MB!')
+      return
+    }
+
+    const loading = ElLoading.service({
+      lock: true,
+      text: '正在上传头像...',
+      background: 'rgba(255, 255, 255, 0.7)',
+    })
+
+    const res = await uploadAvatar(file.raw)
+    if (res && res.avatar_url) {
+      avatarUrl.value = res.avatar_url
+      ElMessage.success('头像更新成功')
+      // 重新获取用户信息以同步状态
+      await fetchUserInfo()
+    }
+    loading.close()
+  } catch (error) {
+    console.error('头像上传失败:', error)
+    ElMessage.error('头像上传失败，请重试')
+  }
 }
 
 // ✅ 邮箱编辑相关方法
@@ -611,41 +668,44 @@ onMounted(() => {
 
 /* 侧边栏样式 */
 .sidebar {
-  width: 260px;
-  background: white;
-  backdrop-filter: blur(4px);
-  box-shadow: 2px 0 12px rgba(0, 80, 200, 0.05);
+  width: 280px;
+  background: var(--bg-sidebar);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #e2edff;
-  transition: all 0.2s;
+  border-right: 1px solid var(--border-light);
+  transition: all 0.3s ease;
+  z-index: 100;
 }
 
 .logo-area {
-  padding: 28px 20px;
-  border-bottom: 1px solid #e9f0ff;
-  margin-bottom: 20px;
+  padding: 32px 24px;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 24px;
+  background: linear-gradient(to bottom, rgba(255,255,255,0.8), transparent);
 }
 
 /* ✅ 用户账户按钮样式 */
 .user-account-btn {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, #eef4ff, #e0edfe);
-  border-radius: 14px;
+  gap: 14px;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, #f0f7ff, #e6f0ff);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.3s;
-  border: 2px solid transparent;
-  margin-bottom: 12px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(43, 110, 240, 0.1);
+  margin-bottom: 16px;
 }
 
 .user-account-btn:hover {
-  background: linear-gradient(135deg, #e0edfe, #d0e0fd);
+  background: linear-gradient(135deg, #e6f0ff, #d6e4ff);
   border-color: var(--primary);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(43, 110, 240, 0.15);
+  box-shadow: 0 8px 20px rgba(43, 110, 240, 0.15);
 }
 
 .user-avatar {
@@ -660,6 +720,21 @@ onMounted(() => {
   font-size: 1.2rem;
   font-weight: 600;
   flex-shrink: 0;
+}
+
+.user-avatar-img {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.user-avatar-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .user-info {
@@ -717,33 +792,41 @@ onMounted(() => {
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  margin-bottom: 8px;
-  border-radius: 14px;
+  gap: 14px;
+  padding: 14px 20px;
+  margin-bottom: 10px;
+  border-radius: var(--radius-md);
   cursor: pointer;
-  color: #2c4e7a;
-  transition: all 0.2s;
+  color: var(--text-secondary);
+  transition: all 0.25s ease;
   font-weight: 500;
+  position: relative;
+  overflow: hidden;
 }
 
 .nav-item i {
-  font-size: 1.3rem;
-  width: 24px;
+  font-size: 1.4rem;
+  width: 26px;
   text-align: center;
+  transition: transform 0.2s;
 }
 
 .nav-item.active {
   background: linear-gradient(135deg, #eef4ff, #e0edfe);
   color: var(--primary);
   font-weight: 600;
-  box-shadow: 0 2px 6px rgba(43, 110, 240, 0.1);
-  border-left: 3px solid var(--primary);
+  box-shadow: 0 4px 12px rgba(43, 110, 240, 0.08);
+  border-left: 4px solid var(--primary);
+}
+
+.nav-item.active i {
+  transform: scale(1.1);
 }
 
 .nav-item:hover:not(.active) {
-  background: #f4f9ff;
+  background: #f8fafc;
   color: var(--primary);
+  transform: translateX(4px);
 }
 
 /* 顶部导航栏 */
@@ -770,17 +853,25 @@ onMounted(() => {
 
 /* 顶部自然语言交互条 */
 .nlp-bar {
-  background: white;
-  border-radius: 60px;
-  padding: 8px 20px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  border-radius: 50px;
+  padding: 10px 24px;
   box-shadow: var(--shadow-sm);
   display: flex;
   align-items: center;
   flex: 1;
   max-width: none;
-  gap: 12px;
+  gap: 16px;
   margin-bottom: 0;
-  border: 1px solid #cde2ff;
+  border: 1px solid var(--border-light);
+  transition: all 0.3s;
+}
+
+.nlp-bar:focus-within {
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary-light);
+  transform: translateY(-1px);
 }
 
 .nlp-bar i {
@@ -949,6 +1040,50 @@ onMounted(() => {
 }
 
 .field-display:hover .edit-icon {
+  opacity: 1;
+}
+
+/* ✅ 头像上传样式 */
+.avatar-uploader {
+  position: relative;
+  cursor: pointer;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.profile-avatar-large-img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  background: #fff;
+}
+
+.profile-avatar-large-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.upload-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  opacity: 0;
+  transition: opacity 0.3s;
+  font-size: 12px;
+}
+
+.avatar-uploader:hover .upload-overlay {
   opacity: 1;
 }
 </style>

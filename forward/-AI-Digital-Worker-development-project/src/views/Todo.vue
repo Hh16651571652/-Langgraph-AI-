@@ -106,6 +106,7 @@
          title="📚 历史记录" 
          width="800px"
          :close-on-click-modal="true"
+         append-to-body
        >
          <div class="history-dialog">
            <!-- 筛选工具栏 -->
@@ -846,8 +847,15 @@ watch(
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid #eef2ff;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-light);
+  transition: all 0.2s ease;
+  border-radius: var(--radius-sm);
+}
+
+.task-item:hover {
+  background: #f8fafc;
+  transform: translateX(4px);
 }
 
 .task-status {
@@ -882,23 +890,25 @@ watch(
 }
 
 .check-btn {
-  background: #10b981;
+  background: linear-gradient(135deg, #10b981, #059669);
   border: none;
   border-radius: 50%;
-  padding: 6px;
+  padding: 8px;
   cursor: pointer;
   color: white;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
 }
 
 .check-btn:hover {
-  background: #059669;
-  transform: scale(1.05);
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 /* 历史记录弹窗样式 */
@@ -942,24 +952,28 @@ watch(
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
+  padding: 18px 20px;
   margin-bottom: 12px;
-  background: #f8f9fa;
-  border-radius: 12px;
-  transition: all 0.2s;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  transition: all 0.25s ease;
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
 }
 
 .completed-task {
   border-left: 4px solid #10b981;
+  opacity: 0.9;
 }
 
 .overdue-task {
-  border-left: 4px solid #f56565;
+  border-left: 4px solid #ef4444;
 }
 
 .history-task-item:hover {
-  background: #f1f5f9;
-  transform: translateY(-1px);
+  background: #f8fafc;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .task-info {

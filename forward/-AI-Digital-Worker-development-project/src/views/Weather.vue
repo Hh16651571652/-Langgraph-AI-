@@ -350,10 +350,18 @@ onMounted(async () => {
 }
 
 .weather-card {
-  background: #f9fcff;
-  border-radius: 20px;
-  padding: 20px;
+  background: linear-gradient(135deg, #e0f2fe, #ffffff);
+  border-radius: var(--radius-lg);
+  padding: 28px;
   margin-bottom: 12px;
+  box-shadow: var(--shadow-md);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  transition: all 0.3s ease;
+}
+
+.weather-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
 }
 
 .tag-weather {
@@ -420,17 +428,19 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  margin-bottom: 8px;
-  background: #f9fcff;
-  border-radius: 12px;
-  border-left: 4px solid #2b6ef0;
-  transition: all 0.2s;
+  padding: 16px 20px;
+  margin-bottom: 10px;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border-left: 4px solid var(--primary);
+  transition: all 0.25s ease;
+  box-shadow: var(--shadow-sm);
 }
 
 .forecast-item:hover {
-  background: #f1f5f9;
-  transform: translateY(-1px);
+  background: #f8fafc;
+  transform: translateX(4px);
+  box-shadow: var(--shadow-md);
 }
 
 .forecast-date {
@@ -523,18 +533,20 @@ onMounted(async () => {
 
 .hourly-item {
   flex-shrink: 0;
-  min-width: 80px;
-  padding: 12px 8px;
+  min-width: 85px;
+  padding: 14px 10px;
   background: linear-gradient(135deg, #f0f9ff, #ffffff);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   border: 1px solid #e0f2fe;
   text-align: center;
-  transition: all 0.2s;
+  transition: all 0.25s ease;
+  box-shadow: var(--shadow-sm);
 }
 
 .hourly-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary-light);
 }
 
 .hourly-time {

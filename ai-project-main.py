@@ -2,6 +2,7 @@ import ssl
 import urllib3
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 import datetime
 import logging
 from dotenv import load_dotenv
@@ -26,7 +27,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # 导入子路由模块
-from routers import auth, todo, meeting, weather, agent, meeting_nlp
+from routers import auth, todo, meeting, weather, agent, meeting_nlp, upload
 
 # 导入中间件
 from middleware import RequestLoggingMiddleware, ExceptionHandlingMiddleware, AuditLoggingMiddleware
@@ -64,6 +65,13 @@ app.include_router(meeting.router, prefix="/api")
 app.include_router(meeting_nlp.router, prefix="/api")  # NLP智能预订/取消
 app.include_router(weather.router, prefix="/api")
 app.include_router(agent.router, prefix="/api")  # Agent路由
+app.include_router(upload.router, prefix="/api")  # 文件上传路由
+
+# 挂载静态文件目录（用于访问头像等上传文件）
+import os
+if not os.path.exists("uploads"):
+    os.makedirs("uploads")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 # 健康检查接口
 @app.get("/api/health")
