@@ -6,8 +6,8 @@
   },
   "deploy": {
     "startCommand": "python ai-project-main.py",
-    "healthcheckPath": "/api/health",
-    "healthcheckTimeout": 100,
+    "healthcheckPath": "/",
+    "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }

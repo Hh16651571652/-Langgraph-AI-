@@ -1,13 +1,17 @@
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
+import os
 
-# 创建数据库引擎
-ASYNC_DATABASE_URL = "mysql+aiomysql://root:Hh261819.@localhost:3306/aiproject?charset=utf8"
+# 从环境变量读取数据库URL，支持本地和云端部署
+ASYNC_DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "mysql+aiomysql://root:Hh261819.@localhost:3306/aiproject?charset=utf8"  # 默认本地MySQL
+)
 
 # 创建异步数据库引擎
 async_engine = create_async_engine(
     ASYNC_DATABASE_URL,
-    echo=True,
+    echo=False,  # 生产环境关闭SQL日志
     pool_size=20,
     max_overflow=10
 )
