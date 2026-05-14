@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ main ]
 
+# 提前测试 Node.js 24 兼容性（2026年6月后会自动启用）
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   # 后端测试
   backend-test:
