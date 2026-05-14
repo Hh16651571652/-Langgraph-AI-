@@ -2,12 +2,24 @@
 RAG 检索器模块
 提供文档检索功能，支持混合检索、重排序和查询扩展
 """
+import hashlib
+import json
 from typing import List, Dict, Optional
 from .vector_db import VectorDatabase
 from .hybrid_retriever import HybridRetriever
 from .reranker import Reranker
 from .query_expansion import get_query_expander
 from agent.llm import get_qwen_llm
+
+# Redis 缓存配置 (复用 memory_manager 的连接)
+try:
+    import redis
+    redis_client = redis.Redis(host='localhost', port=6379, db=1, decode_responses=True)
+    redis_client.ping()
+    print("[RAG] Redis 缓存连接成功")
+except Exception as e:
+    print(f"[RAG] Redis 缓存连接失败: {e}")
+    redis_client = None
 
 
 class RAGRetriever:
@@ -52,17 +64,16 @@ class RAGRetriever:
                  use_query_expansion: bool = True) -> List[Dict]:
         """
         检索相关文档（支持混合检索、重排序和查询扩展）
-        
-        Args:
-            query: 查询文本
-            top_k: 返回结果数量
-            filter_category: 可选的分类过滤
-            min_relevance_score: 最小相关性分数阈值
-            use_query_expansion: 是否使用查询扩展
-            
-        Returns:
-            检索结果列表（按相关性排序）
         """
+        # 🔥 缓存逻辑：生成查询指纹
+        cache_key = f"rag:{hashlib.md5(f'{query}_{top_k}'.encode()).hexdigest()}"
+        if redis_client:
+            cached_data = redis_client.get(cache_key)
+            if cached_data:
+                print(f"[RAGRetriever] 🚀 命中缓存")
+                return json.loads(cached_data)
+
+        # ... (原有检索逻辑保持不变) ...
         # 查询扩展
         if use_query_expansion:
             expanded_queries = await self.query_expander.expand_query(query, num_variants=2)
@@ -77,13 +88,12 @@ class RAGRetriever:
             if self.use_hybrid and self.hybrid_retriever:
                 results = self.hybrid_retriever.hybrid_search(
                     query=exp_query,
-                    top_k=top_k * 3,  # 扩大候选集，为重排序提供更多选择
+                    top_k=top_k * 3,
                     filter_category=filter_category,
-                    vector_weight=0.6,  # 语义权重：平衡语义和关键词
-                    bm25_weight=0.4     # 关键词权重：提升精确匹配能力
+                    vector_weight=0.6,
+                    bm25_weight=0.4
                 )
             else:
-                # 纯向量检索
                 results = self.vector_db.search(
                     query=exp_query,
                     n_results=top_k * 3,
@@ -134,6 +144,13 @@ class RAGRetriever:
                 key=lambda x: x.get('relevance_score', 0), 
                 reverse=True
             )[:top_k]
+        
+        # 🔥 存入缓存 (有效期 1 小时)
+        if redis_client:
+            try:
+                redis_client.setex(cache_key, 3600, json.dumps(sorted_results, ensure_ascii=False))
+            except Exception as e:
+                print(f"[RAGRetriever] 缓存写入失败: {e}")
         
         return sorted_results
     

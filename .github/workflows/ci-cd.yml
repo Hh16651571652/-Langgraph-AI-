@@ -1,0 +1,174 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # 后端测试
+  backend-test:
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root_password
+          MYSQL_DATABASE: test_db
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Cache pip packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements_llm.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements_llm.txt
+        pip install pytest pytest-asyncio pytest-cov pytest-json-report aiosqlite aiomysql
+    
+    - name: Run backend tests
+      env:
+        DATABASE_URL: mysql+aiomysql://root:root_password@localhost:3306/test_db
+        REDIS_URL: redis://localhost:6379/0
+      run: |
+        cd parttest
+        python -m pytest 01_auth_tests/ 02_todo_tests/ 03_meeting_tests/ 07_security_tests/ \
+          --json-report --json-report-file=test_results.json \
+          --cov=. --cov-report=xml \
+          -v
+    
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results
+        path: parttest/test_results.json
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: parttest/coverage.xml
+        flags: backend
+
+  # 前端测试
+  frontend-test:
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./forward/-AI-Digital-Worker-development-project
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: forward/-AI-Digital-Worker-development-project/package-lock.json
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Run linter
+      run: npm run lint || echo "No lint script configured"
+    
+    - name: Build frontend
+      run: npm run build
+    
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: frontend-build
+        path: forward/-AI-Digital-Worker-development-project/dist/
+
+  # Docker构建和推送
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    
+    - name: Build and push backend
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/ai-digital-staff-backend:latest
+          ${{ secrets.DOCKER_USERNAME }}/ai-digital-staff-backend:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Build and push frontend
+      uses: docker/build-push-action@v4
+      with:
+        context: ./forward/-AI-Digital-Worker-development-project
+        push: true
+        tags: |
+          ${{ secrets.DOCKER_USERNAME }}/ai-digital-staff-frontend:latest
+          ${{ secrets.DOCKER_USERNAME }}/ai-digital-staff-frontend:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  # 部署到服务器（可选）
+  deploy:
+    runs-on: ubuntu-latest
+    needs: docker-build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: Deploy to server
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SERVER_HOST }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
+        script: |
+          cd /opt/ai-digital-staff
+          docker-compose pull
+          docker-compose up -d
+          docker system prune -af

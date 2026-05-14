@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  # 后端API服务
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.backend
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=mysql+aiomysql://user:password@db:3306/ai_digital_staff
+      - REDIS_URL=redis://redis:6379/0
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ../DATA:/app/DATA
+      - ../uploads:/app/uploads
+    networks:
+      - ai-network
+    restart: unless-stopped
+
+  # 前端服务
+  frontend:
+    build:
+      context: ../forward/-AI-Digital-Worker-development-project
+      dockerfile: ../../docker/Dockerfile.frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - ai-network
+    restart: unless-stopped
+
+  # MySQL数据库
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: ai_digital_staff
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - ai-network
+    restart: unless-stopped
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - ai-network
+    restart: unless-stopped
+
+volumes:
+  mysql-data:
+  redis-data:
+
+networks:
+  ai-network:
+    driver: bridge

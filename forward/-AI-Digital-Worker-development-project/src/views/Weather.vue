@@ -19,7 +19,10 @@
     </PageHeader>
     
     <div class="card">
-      <div class="grid-2col">
+      <!-- ✨ 新增：天气加载骨架屏 -->
+      <SkeletonLoader v-if="isLoading" :rows="3" height="300px" />
+      
+      <div v-else class="grid-2col">
         <div>
           <div v-if="currentWeather" class="weather-card" style="background:linear-gradient(135deg,#e6f4ff,#fff);">
             <h2>{{ currentWeather.city }} <span style="font-size:1.8rem;">{{ currentWeather.temp }}°C</span></h2>
@@ -97,9 +100,13 @@ import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import { getAllWeather } from '@/api/modules/weather'
 import PageHeader from '@/components/PageHeader.vue' // ✨ 新增
+import SkeletonLoader from '@/components/SkeletonLoader.vue' // ✨ 新增
 
 // 获取路由对象
 const route = useRoute()
+
+// ✨ 新增：全局加载状态
+const isLoading = ref(true)
 
 // 天气数据
 const weatherCity = ref('上海')
@@ -354,25 +361,30 @@ const fetchWeather = async () => {
 }
 
 onMounted(async () => {
-  // 检查是否有从Agent传来的数据
-  const nlpDataStr = sessionStorage.getItem('nlp_weather_data')
-  if (nlpDataStr) {
-    try {
-      const nlpData = JSON.parse(nlpDataStr)
-      sessionStorage.removeItem('nlp_weather_data')
-      
-      const success = await handleAgentWeatherData(nlpData)
-      if (success) {
-        ElMessage.success('✅ 天气查询成功！')
-        return
+  isLoading.value = true
+  try {
+    // 检查是否有从Agent传来的数据
+    const nlpDataStr = sessionStorage.getItem('nlp_weather_data')
+    if (nlpDataStr) {
+      try {
+        const nlpData = JSON.parse(nlpDataStr)
+        sessionStorage.removeItem('nlp_weather_data')
+        
+        const success = await handleAgentWeatherData(nlpData)
+        if (success) {
+          ElMessage.success('✅ 天气查询成功！')
+          return
+        }
+      } catch (error) {
+        console.error('[Weather] 解析Agent数据失败:', error)
       }
-    } catch (error) {
-      console.error('[Weather] 解析Agent数据失败:', error)
     }
+    
+    // 如果没有Agent数据，正常加载
+    await fetchWeather()
+  } finally {
+    isLoading.value = false
   }
-  
-  // 如果没有Agent数据，正常加载
-  await fetchWeather()
 })
 </script>
 

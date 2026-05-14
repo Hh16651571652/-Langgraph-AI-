@@ -147,6 +147,11 @@
               <span></span>
               <span></span>
             </div>
+            <!-- ✨ 新增：超时重试按钮 -->
+            <div v-if="isTimeout" class="retry-container">
+              <span class="retry-text">请求超时，请检查网络或点击重试</span>
+              <el-button size="small" type="primary" @click="retryLastMessage">重试</el-button>
+            </div>
           </div>
         </div>
       </div>
@@ -191,6 +196,8 @@ const router = useRouter()
 const messages = ref([])
 const userInput = ref('')
 const isLoading = ref(false)
+const isTimeout = ref(false) // ✨ 新增：超时状态
+const lastFailedInput = ref('') // ✨ 新增：记录失败的输入以便重试
 const isHistoryLoading = ref(false) // ✨ 新增：历史消息加载状态
 const messagesContainer = ref(null)
 const sessionId = ref(localStorage.getItem('agent_session_id') || null)
@@ -264,8 +271,10 @@ const sendMessage = async () => {
 
   messages.value.push(userMessage)
   const currentInput = userInput.value
+  lastFailedInput.value = currentInput // ✨ 记录当前输入
   userInput.value = ''
   isLoading.value = true
+  isTimeout.value = false // ✨ 重置超时状态
 
   try {
     const result = await chatWithAgent(currentInput, sessionId.value)
@@ -338,7 +347,8 @@ const sendMessage = async () => {
     
     // 超时处理
     if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-      ElMessage.warning('请求超时，请检查网络连接后重试')
+      isTimeout.value = true // ✨ 标记为超时
+      ElMessage.warning('⚠️ 响应超时，请检查网络或点击重试')
     } else {
       ElMessage.error('发送消息失败，请稍后重试')
     }
@@ -349,6 +359,36 @@ const sendMessage = async () => {
       content: '抱歉，处理您的请求时出现了错误，请稍后重试。',
       timestamp: new Date()
     })
+  } finally {
+    isLoading.value = false
+    scrollToBottom()
+  }
+}
+
+// ✨ 新增：重试功能
+const retryLastMessage = async () => {
+  if (!lastFailedInput.value) return
+  
+  isTimeout.value = false
+  isLoading.value = true
+  
+  try {
+    const result = await chatWithAgent(lastFailedInput.value, sessionId.value)
+    // ... (复用原有的成功处理逻辑，此处为简化展示，实际开发中应提取公共函数)
+    if (result.session_id) {
+      sessionId.value = result.session_id
+      localStorage.setItem('agent_session_id', result.session_id)
+    }
+    messages.value.push({
+      role: 'assistant',
+      content: result.response || '抱歉，我没有理解您的问题。',
+      timestamp: new Date()
+    })
+    lastFailedInput.value = '' // 清空失败记录
+    ElMessage.success('✅ 重试成功')
+  } catch (error) {
+    console.error('[Chat] 重试失败:', error)
+    ElMessage.error('重试失败，请稍后再试')
   } finally {
     isLoading.value = false
     scrollToBottom()
@@ -985,6 +1025,20 @@ onMounted(() => {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.retry-container {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #e4e7ed;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.retry-text {
+  font-size: 0.9rem;
+  color: #f56c6c;
 }
 
 .typing-indicator {

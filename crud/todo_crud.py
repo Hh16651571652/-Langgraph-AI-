@@ -17,7 +17,7 @@ def _calculate_time_status(due_date, status):
     根据截止时间和状态计算时间状态
     
     Args:
-        due_date: 截止时间
+        due_date: 截止时间 (支持 datetime 或 ISO 格式字符串)
         status: 当前状态
         
     Returns:
@@ -29,7 +29,14 @@ def _calculate_time_status(due_date, status):
     if not due_date:
         return "ongoing"
     
-    now = datetime.datetime.now()
+    # 兼容性处理：如果 due_date 是字符串，转换为 datetime
+    if isinstance(due_date, str):
+        try:
+            due_date = datetime.datetime.fromisoformat(due_date.replace('Z', '+00:00'))
+        except ValueError:
+            return "ongoing"
+    
+    now = datetime.datetime.now(datetime.timezone.utc) if due_date.tzinfo else datetime.datetime.now()
     hours_diff = (due_date - now).total_seconds() / 3600
     
     if hours_diff < 0:

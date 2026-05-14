@@ -21,7 +21,10 @@
     </PageHeader>
     
     <div class="card">
-      <div class="grid-2col">
+      <!-- ✨ 新增：全局加载骨架屏 -->
+      <SkeletonLoader v-if="isLoading" :rows="4" :card-count="2" height="400px" />
+      
+      <div v-else class="grid-2col">
         <div>
           <h4>📌 可预约会议室</h4>
           
@@ -291,6 +294,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Clock, List, Promotion } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import PageHeader from '@/components/PageHeader.vue' // ✨ 新增
+import SkeletonLoader from '@/components/SkeletonLoader.vue' // ✨ 新增
 import { 
   getMeetingRooms, 
   getMyBookings, 
@@ -303,6 +307,9 @@ import {
 
 // 获取路由对象
 const route = useRoute()
+
+// ✨ 新增：全局加载状态
+const isLoading = ref(true)
 
 // 会议室数据
 const meetingRooms = ref([])
@@ -827,7 +834,11 @@ const checkAndHandleNLPData = () => {
 }
 
 onMounted(async () => {
-  await Promise.all([fetchMeetingRooms(), fetchMyBookings()])
+  try {
+    await Promise.all([fetchMeetingRooms(), fetchMyBookings()])
+  } finally {
+    isLoading.value = false
+  }
   
   // 如果从Layout的NLP指令跳转过来（带有refresh参数），处理NLP数据
   if (route.query.refresh === 'true' || route.query.refresh === true) {

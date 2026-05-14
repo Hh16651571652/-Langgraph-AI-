@@ -4,15 +4,32 @@ import axios from 'axios'
 // 创建axios实例
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
-  timeout: 30000,
+  timeout: 30000, // 🔥 默认超时 30s
   headers: {
     'Content-Type': 'application/json'
   }
 })
 
-// 请求拦截器
+// 🔥 针对不同接口设置不同的超时时间
+const TIMEOUT_CONFIG = {
+  '/agent/chat': 60000,      // LLM对话：60s
+  '/weather': 15000,         // 天气查询：15s
+  '/default': 30000          // 默认：30s
+}
+
+// 请求拦截器 - 动态设置超时
 api.interceptors.request.use(
   config => {
+    // 根据 URL 匹配超时时间
+    let timeout = TIMEOUT_CONFIG['/default']
+    for (const [path, time] of Object.entries(TIMEOUT_CONFIG)) {
+      if (config.url.includes(path)) {
+        timeout = time
+        break
+      }
+    }
+    config.timeout = timeout
+    
     // 添加认证token
     const token = localStorage.getItem('token')
     if (token) {

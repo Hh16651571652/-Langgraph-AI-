@@ -1,0 +1,25 @@
+# 前端服务
+FROM node:18-alpine
+
+WORKDIR /app
+
+# 复制package文件
+COPY package*.json ./
+
+# 安装依赖
+RUN npm ci --only=production
+
+# 复制项目文件
+COPY . .
+
+# 构建
+RUN npm run build
+
+# 使用Nginx提供静态文件服务
+FROM nginx:alpine
+COPY --from=0 /app/dist /usr/share/nginx/html
+COPY nginx-ai-digital-staff.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

@@ -55,3 +55,13 @@ Thumbs.db
 
 # 临时文件
 %s
+
+# 用户上传文件
+uploads/
+
+# 测试报告和覆盖率数据
+parttest/reports/
+parttest/coverage_html/
+
+# 前端环境变量
+forward/*/.env

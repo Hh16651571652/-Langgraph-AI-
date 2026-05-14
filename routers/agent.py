@@ -14,6 +14,9 @@ from config.db_config import get_database
 # 导入Session Token认证
 from utils.session_auth import get_current_user_id_from_session
 
+# 🔥 导入安全工具
+from utils.security import security_guard
+
 
 # 定义请求模型
 class ChatRequest(BaseModel):
@@ -116,6 +119,9 @@ async def chat_with_agent(
         dict: Agent回复和处理结果
     """
     try:
+        # 🔥 安全网关：检查输入内容
+        security_guard(request.message)
+        
         import uuid
         from agent.langgraph_workflow import get_langgraph_workflow
         from config.db_config import AsyncSessionLocal

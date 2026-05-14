@@ -2,7 +2,14 @@
 
 一个基于 LangGraph + FastAPI + Vue3 的智能助手系统，支持待办管理、会议室预定、天气查询、企业知识库检索等功能，通过自然语言与用户交互。
 
-**最新更新 (2026-05-14)**: 完成前端全面优化与主题统一 - PageHeader组件、路由过渡动画、骨架屏、批量操作、交互动画
+**最新更新 (2026-05-14)**: 
+- 🐳 Docker容器化部署支持（文件已整理到docker/目录）
+- 🔄 GitHub Actions CI/CD自动化
+- 🧪 前端Vitest测试框架
+- ⚡ 性能优化和基准测试（平均响应时间13ms，QPS 75+）
+- 🗄️ 数据库索引优化（20个性能索引）
+- 📁 项目结构优化（Docker文件整理、清理冗余文件）
+- 🎨 前端全面优化与主题统一
 
 ![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)
@@ -175,69 +182,121 @@ npm run dev
 
 前端应用将在 `http://localhost:5173` 运行
 
+### 🐳 Docker部署（推荐）
+
+```bash
+# 一键启动所有服务（后端+前端+MySQL+Redis）
+docker-compose -f docker/docker-compose.yml up -d
+
+# 查看日志
+docker-compose -f docker/docker-compose.yml logs -f backend
+
+# 停止服务
+docker-compose -f docker/docker-compose.yml down
+```
+
+详细部署指南请查看 [docker/README.md](./docker/README.md) 和 [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+### ⚡ 性能优化
+
+```bash
+# 创建数据库索引
+python optimize_db_indexes.py
+
+# 运行性能基准测试
+pip install aiohttp
+python benchmark_performance.py
+```
+
 ## 📁 项目结构
 
 ```
 project/
-├── agent/                  # AI Agent 模块
-│   ├── llm.py             # LLM 配置 (ChatTongyi)
-│   ├── task_classifier.py # 任务分类器
-│   ├── chat_agent.py      # 聊天 Agent (支持RAG)
-│   ├── todo_agent.py      # 待办 Agent
-│   ├── meeting_agent.py   # 会议 Agent
-│   ├── weather_agent.py   # 天气 Agent
-│   ├── langgraph_workflow.py # LangGraph 工作流
-│   └── memory_manager.py  # 记忆管理 (Redis)
-├── RAG/                    # RAG 检索增强生成模块
-│   ├── vector_db.py       # 向量数据库管理
-│   ├── retriever.py       # 检索器（混合检索+重排序）
-│   ├── reranker.py        # Cross-Encoder 重排序
-│   ├── query_expansion.py # 查询扩展
-│   ├── init_rag.py        # 初始化脚本
-│   └── chroma_db/         # ChromaDB 数据存储
-├── RAG_eval/               # RAGAS 评估系统
-│   ├── ragas_evaluator.py # 评估器核心
-│   ├── evaluation_dataset.py # 测试数据集（69个问题）
-│   ├── run_eval.py        # 评估运行脚本
-│   ├── fix_nan_results.py # NaN修复工具
-│   └── results/           # 评估结果（不上传git）
-├── DATA/                   # 企业知识库文档 (Markdown格式)
-├── routers/               # API 路由
-│   ├── agent.py          # Agent 接口
-│   ├── todo.py           # 待办接口
-│   ├── meeting.py        # 会议接口
-│   ├── weather.py        # 天气接口
-│   └── auth.py           # 认证接口
-├── crud/                  # 数据库操作
-├── model/                 # 数据模型
-├── schemas/               # Pydantic 模式
-├── utils/                 # 工具函数
-│   ├── data_converter.py # 数据转换工具 ⭐新增
-│   ├── session_auth.py   # Session认证
-│   └── auth_utils.py     # 认证工具
-├── uploads/               # 文件存储目录 ⭐新增
-│   └── avatars/          # 用户头像存储
-├── middleware/            # 中间件 ⭐新增
-│   └── __init__.py       # 请求日志、异常处理、审计日志
-├── prompt/                # Prompt 模板
-├── forward/               # 前端项目
+├── 📄 README.md                    # 项目主文档
+├── 📄 API接口文档.md               # API详细说明
+├── 📄 DEPLOYMENT.md                # Docker部署指南
+├── 📄 PERFORMANCE_OPTIMIZATION.md  # 性能优化指南
+├── 📄 AGENT_BUSINESS_OPERATIONS.md # Agent业务操作指南
+├── 📄 NLP_USAGE_GUIDE.md           # NLP使用指南
+├── 📄 RAG_QUICK_START.md           # RAG快速开始
+├── 🐳 docker/                      # Docker配置目录 ⭐新增
+│   ├── Dockerfile.backend          # 后端服务镜像
+│   ├── Dockerfile.frontend         # 前端服务镜像
+│   ├── docker-compose.yml          # 多服务编排
+│   ├── .dockerignore               # 构建忽略规则
+│   └── README.md                   # Docker使用说明
+├── 🤖 agent/                       # AI Agent 模块
+│   ├── llm.py                      # LLM 配置 (ChatTongyi)
+│   ├── task_classifier.py          # 任务分类器
+│   ├── chat_agent.py               # 聊天 Agent (支持RAG)
+│   ├── todo_agent.py               # 待办 Agent
+│   ├── meeting_agent.py            # 会议 Agent
+│   ├── weather_agent.py            # 天气 Agent
+│   ├── langgraph_workflow.py       # LangGraph 工作流
+│   └── memory_manager.py           # 记忆管理 (Redis)
+├── 📚 RAG/                         # RAG 检索增强生成模块
+│   ├── vector_db.py                # 向量数据库管理
+│   ├── retriever.py                # 检索器（混合检索+重排序）
+│   ├── reranker.py                 # Cross-Encoder 重排序
+│   ├── query_expansion.py          # 查询扩展
+│   ├── init_rag.py                 # 初始化脚本
+│   ├── README_RAG.md               # RAG使用说明
+│   └── chroma_db/                  # ChromaDB 数据存储
+├── 📊 RAG_eval/                    # RAGAS 评估系统
+│   ├── ragas_evaluator.py          # 评估器核心
+│   ├── evaluation_dataset.py       # 测试数据集（69个问题）
+│   ├── run_eval.py                 # 评估运行脚本
+│   └── results/                    # 评估结果（不上传git）
+├── 📂 DATA/                        # 企业知识库文档 (Markdown格式)
+├── 🌐 routers/                     # API 路由
+│   ├── agent.py                    # Agent 接口
+│   ├── todo.py                     # 待办接口
+│   ├── meeting.py                  # 会议接口
+│   ├── weather.py                  # 天气接口
+│   └── auth.py                     # 认证接口
+├── 💾 crud/                        # 数据库操作
+├── 🗃️ model/                       # 数据模型
+├── 🔍 schemas/                     # Pydantic 模式
+├── 🛠️ utils/                       # 工具函数
+│   ├── data_converter.py           # 数据转换工具 ⭐新增
+│   ├── session_auth.py             # Session认证
+│   └── auth_utils.py               # 认证工具
+├── 📤 uploads/                     # 文件存储目录 ⭐新增
+│   └── avatars/                    # 用户头像存储
+├── 🛡️ middleware/                  # 中间件 ⭐新增
+│   └── __init__.py                 # 请求日志、异常处理、审计日志
+├── 📝 prompt/                      # Prompt 模板
+├── 🎨 forward/                     # 前端项目
 │   └── -AI-Digital-Worker-development-project/
 │       ├── src/
-│       │   ├── components/    # Vue 组件 ⭐新增
+│       │   ├── components/         # Vue 组件 ⭐新增
 │       │   │   ├── PageHeader.vue      # 统一页面头部
 │       │   │   ├── SkeletonLoader.vue  # 骨架屏加载组件
 │       │   │   └── ReminderButton.vue  # 提醒按钮组件
-│       │   ├── views/         # 页面视图
-│       │   │   ├── Chat.vue          # 智能对话页面
-│       │   │   ├── Todo.vue          # 待办事项页面
-│       │   │   ├── Meeting.vue       # 会议室预约页面
-│       │   │   ├── Weather.vue       # 天气查询页面
-│       │   │   └── Layout.vue        # 布局组件（含路由过渡）
-│       │   ├── assets/        # 静态资源
-│       │   │   └── theme.css         # 全局主题样式规范 ⭐新增
-│       │   └── router/        # 路由配置
-├── parttest/              # 测试文件
-└── config/                # 配置文件
+│       │   ├── views/              # 页面视图
+│       │   │   ├── Chat.vue            # 智能对话页面
+│       │   │   ├── Todo.vue            # 待办事项页面
+│       │   │   ├── Meeting.vue         # 会议室预约页面
+│       │   │   ├── Weather.vue         # 天气查询页面
+│       │   │   └── Layout.vue          # 布局组件（含路由过渡）
+│       │   ├── assets/             # 静态资源
+│       │   │   └── theme.css           # 全局主题样式规范 ⭐新增
+│       │   ├── __tests__/          # 前端测试 ⭐新增
+│       │   │   ├── Login.spec.js       # 登录测试
+│       │   │   └── Todo.spec.js        # 待办测试
+│       │   └── router/             # 路由配置
+├── 🧪 parttest/                    # 后端测试文件
+│   ├── 01_auth_tests/              # 认证模块测试
+│   ├── 02_todo_tests/              # 待办模块测试
+│   ├── 03_meeting_tests/           # 会议模块测试
+│   ├── 05_agent_tests/             # Agent模块测试
+│   ├── 07_security_tests/          # 安全模块测试
+│   ├── reports/                    # 测试报告
+│   └── generate_*.py               # 报告生成脚本
+├── ⚙️ config/                      # 配置文件
+├── 🔄 .github/workflows/           # GitHub Actions CI/CD ⭐新增
+│   └── ci-cd.yml                   # 自动化流水线
+└── 📝 .env.example                 # 环境变量模板
 ```
 
 ## 🔑 API 文档
@@ -250,17 +309,30 @@ project/
 
 ## 🧪 测试
 
-### 单元测试和集成测试
+### 后端测试
 ```bash
 # 运行所有测试
 cd parttest
-python run_tests.py
+python -m pytest 01_auth_tests/ 02_todo_tests/ 03_meeting_tests/ 05_agent_tests/ 07_security_tests/ -v
 
-# 运行单元测试
-python -m pytest unit/
+# 生成HTML报告
+python generate_module_reports.py
+python generate_dashboard.py
 
-# 运行集成测试
-python -m pytest integration/
+# 查看汇总
+python show_summary.py
+```
+
+### 前端测试
+```bash
+# 进入前端目录
+cd forward/-AI-Digital-Worker-development-project
+
+# 运行测试
+npm run test
+
+# 运行测试并生成覆盖率报告
+npm run test:coverage
 ```
 
 ### RAGAS 评估

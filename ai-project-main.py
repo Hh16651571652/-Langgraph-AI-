@@ -31,6 +31,7 @@ from routers import auth, todo, meeting, weather, agent, meeting_nlp, upload
 
 # 导入中间件
 from middleware import RequestLoggingMiddleware, ExceptionHandlingMiddleware, AuditLoggingMiddleware
+from middleware.rate_limit import RateLimitMiddleware
 
 app = FastAPI(
     title="AI数字员工系统",
@@ -39,16 +40,19 @@ app = FastAPI(
 )
 
 # 注册中间件（注意：中间件的执行顺序与添加顺序相反）
-# 1. 审计日志中间件 - 记录关键操作
+# 1. API限流中间件 - 防止恶意刷接口（支持差异化阈值）
+app.add_middleware(RateLimitMiddleware)
+
+# 2. 审计日志中间件 - 记录关键操作
 app.add_middleware(AuditLoggingMiddleware)
 
-# 2. 请求日志中间件 - 记录所有请求
+# 3. 请求日志中间件 - 记录所有请求
 app.add_middleware(RequestLoggingMiddleware)
 
-# 3. 异常处理中间件 - 全局异常捕获
+# 4. 异常处理中间件 - 全局异常捕获
 app.add_middleware(ExceptionHandlingMiddleware)
 
-# 4. CORS中间件 - 跨域支持
+# 5. CORS中间件 - 跨域支持
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "*"],  # 明确允许前端地址
