@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ main ]
 
+# 强制使用 Node.js 24 运行所有 JavaScript Actions
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   # 后端测试
   backend-test:
