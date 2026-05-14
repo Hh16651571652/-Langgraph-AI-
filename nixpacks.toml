@@ -2,7 +2,7 @@
 nixPkgs = ["python311"]
 
 [phases.install]
-cmds = ["python3 -m pip install --upgrade pip", "pip install -r requirements_llm.txt"]
+cmds = ["python -m ensurepip --upgrade", "pip install -r requirements_llm.txt"]
 
 [start]
-cmd = "python3 ai-project-main.py"
+cmd = "python ai-project-main.py"
