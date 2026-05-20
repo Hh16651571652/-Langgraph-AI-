@@ -1,45 +1,44 @@
-# 🤖 AI数字员工系统
+# AI数字员工系统
 
 一个基于 LangGraph + FastAPI + Vue3 的智能助手系统，支持待办管理、会议室预定、天气查询、企业知识库检索等功能，通过自然语言与用户交互。
 
 **最新更新 (2026-05-14)**: 
-- 🐳 Docker容器化部署支持（文件已整理到docker/目录）
-- 🔄 GitHub Actions CI/CD自动化
-- 🧪 前端Vitest测试框架
-- ⚡ 性能优化和基准测试（平均响应时间13ms，QPS 75+）
-- 🗄️ 数据库索引优化（20个性能索引）
-- 📁 项目结构优化（Docker文件整理、清理冗余文件）
-- 🎨 前端全面优化与主题统一
+- Docker容器化部署支持（文件已整理到docker/目录）
+- 前端Vitest测试框架
+- 性能优化和基准测试（平均响应时间13ms，QPS 75+）
+- 数据库索引优化（20个性能索引）
+- 项目结构优化（Docker文件整理、清理冗余文件）
+- 前端全面优化与主题统一
 
 ![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)
 ![Vue](https://img.shields.io/badge/Vue-3.x-brightgreen.svg)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-## ✨ 核心功能
+## 核心功能
 
-### 🎯 智能任务分类
+### 智能任务分类
 - 自动识别用户意图（待办、会议、天气等）
 - 基于 LLM 的语义理解
 - 支持多轮对话上下文
 
-### 📝 待办事项管理
+### 待办事项管理
 - 自然语言创建/查询/更新待办
 - 优先级管理和逾期提醒
 - 状态追踪和历史记录
 
-### 🏢 会议室预定
+### 会议室预定
 - 智能推荐合适会议室
 - 时间冲突检测
 - 一键预定和取消
 
-### 🌤️ 天气查询
+### 天气查询
 - 实时天气信息
 - 7天天气预报
 - 24小时逐时预报
 - 基于阿里云 MCP 服务
 
-### 📚 企业知识库检索 (RAG)
+### 企业知识库检索 (RAG)
 - 基于向量数据库的智能检索
 - 支持公司政策、流程、制度查询
 - ChromaDB 向量存储
@@ -49,7 +48,7 @@
 - 查询扩展技术
 - 智能判断是否需要检索
 
-### 📊 RAGAS 评估系统
+### RAGAS 评估系统
 - 自动化 RAG 系统质量评估
 - 20 个问题的标准测试集
 - 6 大评估指标：
@@ -61,51 +60,51 @@
   - Answer Correctness（答案准确性）
 - 持续优化与迭代
 
-### 💬 对话历史
+### 对话历史
 - 完整的对话记录
 - 会话管理
 - 上下文记忆
 
-### 🚀 系统优化 (2026-05-14)
+### 系统优化 (2026-05-14)
 
-#### 🎨 前端UI/UX全面优化
-- ✅ **PageHeader组件**: 统一的页面头部设计，支持图标、标题、副标题、操作区
-- ✅ **路由过渡动画**: 页面切换淡入淡出效果（0.3s平滑过渡）
-- ✅ **骨架屏组件**: SkeletonLoader通用加载占位，提升用户体验
-- ✅ **批量操作功能**: Todo页面支持全选、批量完成/删除任务
-- ✅ **交互动画增强**:
+#### 前端UI/UX全面优化
+- **PageHeader组件**: 统一的页面头部设计，支持图标、标题、副标题、操作区
+- **路由过渡动画**: 页面切换淡入淡出效果（0.3s平滑过渡）
+- **骨架屏组件**: SkeletonLoader通用加载占位，提升用户体验
+- **批量操作功能**: Todo页面支持全选、批量完成/删除任务
+- **交互动画增强**:
   - Chat页面：消息滑入动画、快捷回复按钮
   - Meeting页面：预订成功脉冲动画、加载状态提示
   - Todo页面：任务完成淡出动画、悬停效果
-- ✅ **主题色系统**: 四个核心页面采用不同渐变配色
+- **主题色系统**: 四个核心页面采用不同渐变配色
   - Chat: 紫色系 `#667eea → #764ba2`
   - Todo: 粉色系 `#f093fb → #f5576c`
   - Meeting: 青色系 `#4facfe → #00f2fe`
   - Weather: 橙黄色系 `#fa709a → #fee140`
-- ✅ **全局样式规范**: theme.css统一定义颜色、按钮、标签、空状态等样式
+- **全局样式规范**: theme.css统一定义颜色、按钮、标签、空状态等样式
 
-#### 🐛 稳定性修复
-- ✅ **完成率计算修复**: 修复Todo页面刷新后完成率变为0的竞态条件问题
-- ✅ **天气查询修复**: 修复Weather页面切换城市后仍显示旧数据的缓存问题
-- ✅ **Session失效检测**: 所有页面添加401/403错误处理和自动跳转登录
-- ✅ **输入验证**: 添加输入长度限制、空值检查、异常降级策略
-- ✅ **数据加载优化**: 改为串行执行避免竞态条件，确保数据一致性
+#### 稳定性修复
+- **完成率计算修复**: 修复Todo页面刷新后完成率变为0的竞态条件问题
+- **天气查询修复**: 修复Weather页面切换城市后仍显示旧数据的缓存问题
+- **Session失效检测**: 所有页面添加401/403错误处理和自动跳转登录
+- **输入验证**: 添加输入长度限制、空值检查、异常降级策略
+- **数据加载优化**: 改为串行执行避免竞态条件，确保数据一致性
 
-#### 📊 代码质量提升
-- ✅ **组件化**: 创建PageHeader、SkeletonLoader两个可复用组件
-- ✅ **响应式设计**: 所有页面支持移动端自适应布局
-- ✅ **错误处理**: 完善的try-catch-finally结构和用户友好提示
-- ✅ **性能优化**: 骨架屏替代loading spinner，提升感知性能
+#### 代码质量提升
+- **组件化**: 创建PageHeader、SkeletonLoader两个可复用组件
+- **响应式设计**: 所有页面支持移动端自适应布局
+- **错误处理**: 完善的try-catch-finally结构和用户友好提示
+- **性能优化**: 骨架屏替代loading spinner，提升感知性能
 
-### 🚀 系统优化 (2026-05-13)
-- ✅ **统一响应格式**: 所有API使用Pydantic模型，提高类型安全
-- ✅ **中间件系统**: 请求日志、异常处理、审计追踪三层中间件
-- ✅ **异常处理**: CRUD层全面异常捕获和回滚机制
-- ✅ **日志审计**: 结构化日志输出（控制台 + 文件），支持链路追踪
-- ✅ **代码重构**: 消除75+行重复代码，提高可维护性
-- ✅ **数据转换工具**: 统一的模型转换函数，DRY原则
+### 系统优化 (2026-05-13)
+- **统一响应格式**: 所有API使用Pydantic模型，提高类型安全
+- **中间件系统**: 请求日志、异常处理、审计追踪三层中间件
+- **异常处理**: CRUD层全面异常捕获和回滚机制
+- **日志审计**: 结构化日志输出（控制台 + 文件），支持链路追踪
+- **代码重构**: 消除75+行重复代码，提高可维护性
+- **数据转换工具**: 统一的模型转换函数，DRY原则
 
-## 🛠️ 技术栈
+## 技术栈
 
 ### 后端
 - **框架**: FastAPI + Uvicorn
@@ -126,7 +125,7 @@
 - **路由**: Vue Router
 - **图表**: ECharts
 
-## 📦 快速开始
+## 快速开始
 
 ### 前置要求
 - Python 3.9+
@@ -208,24 +207,24 @@ pip install aiohttp
 python benchmark_performance.py
 ```
 
-## 📁 项目结构
+## 项目结构
 
 ```
 project/
-├── 📄 README.md                    # 项目主文档
-├── 📄 API接口文档.md               # API详细说明
-├── 📄 DEPLOYMENT.md                # Docker部署指南
-├── 📄 PERFORMANCE_OPTIMIZATION.md  # 性能优化指南
-├── 📄 AGENT_BUSINESS_OPERATIONS.md # Agent业务操作指南
-├── 📄 NLP_USAGE_GUIDE.md           # NLP使用指南
-├── 📄 RAG_QUICK_START.md           # RAG快速开始
-├── 🐳 docker/                      # Docker配置目录 ⭐新增
+├── README.md                    # 项目主文档
+├── API接口文档.md               # API详细说明
+├── DEPLOYMENT.md                # Docker部署指南
+├── PERFORMANCE_OPTIMIZATION.md  # 性能优化指南
+├── AGENT_BUSINESS_OPERATIONS.md # Agent业务操作指南
+├── NLP_USAGE_GUIDE.md           # NLP使用指南
+├── RAG_QUICK_START.md           # RAG快速开始
+├── docker/                      # Docker配置目录 
 │   ├── Dockerfile.backend          # 后端服务镜像
 │   ├── Dockerfile.frontend         # 前端服务镜像
 │   ├── docker-compose.yml          # 多服务编排
 │   ├── .dockerignore               # 构建忽略规则
 │   └── README.md                   # Docker使用说明
-├── 🤖 agent/                       # AI Agent 模块
+├── agent/                       # AI Agent 模块
 │   ├── llm.py                      # LLM 配置 (ChatTongyi)
 │   ├── task_classifier.py          # 任务分类器
 │   ├── chat_agent.py               # 聊天 Agent (支持RAG)
@@ -234,7 +233,7 @@ project/
 │   ├── weather_agent.py            # 天气 Agent
 │   ├── langgraph_workflow.py       # LangGraph 工作流
 │   └── memory_manager.py           # 记忆管理 (Redis)
-├── 📚 RAG/                         # RAG 检索增强生成模块
+├── RAG/                         # RAG 检索增强生成模块
 │   ├── vector_db.py                # 向量数据库管理
 │   ├── retriever.py                # 检索器（混合检索+重排序）
 │   ├── reranker.py                 # Cross-Encoder 重排序
@@ -242,34 +241,34 @@ project/
 │   ├── init_rag.py                 # 初始化脚本
 │   ├── README_RAG.md               # RAG使用说明
 │   └── chroma_db/                  # ChromaDB 数据存储
-├── 📊 RAG_eval/                    # RAGAS 评估系统
+├── RAG_eval/                    # RAGAS 评估系统
 │   ├── ragas_evaluator.py          # 评估器核心
 │   ├── evaluation_dataset.py       # 测试数据集（69个问题）
 │   ├── run_eval.py                 # 评估运行脚本
 │   └── results/                    # 评估结果（不上传git）
-├── 📂 DATA/                        # 企业知识库文档 (Markdown格式)
-├── 🌐 routers/                     # API 路由
+├── DATA/                        # 企业知识库文档 (Markdown格式)
+├── routers/                     # API 路由
 │   ├── agent.py                    # Agent 接口
 │   ├── todo.py                     # 待办接口
 │   ├── meeting.py                  # 会议接口
 │   ├── weather.py                  # 天气接口
 │   └── auth.py                     # 认证接口
-├── 💾 crud/                        # 数据库操作
-├── 🗃️ model/                       # 数据模型
-├── 🔍 schemas/                     # Pydantic 模式
-├── 🛠️ utils/                       # 工具函数
-│   ├── data_converter.py           # 数据转换工具 ⭐新增
+├── crud/                        # 数据库操作
+├── model/                       # 数据模型
+├── schemas/                     # Pydantic 模式
+├── utils/                       # 工具函数
+│   ├── data_converter.py           # 数据转换工具 
 │   ├── session_auth.py             # Session认证
 │   └── auth_utils.py               # 认证工具
-├── 📤 uploads/                     # 文件存储目录 ⭐新增
+├── uploads/                     # 文件存储目录 
 │   └── avatars/                    # 用户头像存储
-├── 🛡️ middleware/                  # 中间件 ⭐新增
+├── middleware/                  # 中间件 
 │   └── __init__.py                 # 请求日志、异常处理、审计日志
-├── 📝 prompt/                      # Prompt 模板
-├── 🎨 forward/                     # 前端项目
+├── prompt/                      # Prompt 模板
+├── forward/                     # 前端项目
 │   └── -AI-Digital-Worker-development-project/
 │       ├── src/
-│       │   ├── components/         # Vue 组件 ⭐新增
+│       │   ├── components/         # Vue 组件 
 │       │   │   ├── PageHeader.vue      # 统一页面头部
 │       │   │   ├── SkeletonLoader.vue  # 骨架屏加载组件
 │       │   │   └── ReminderButton.vue  # 提醒按钮组件
@@ -280,12 +279,12 @@ project/
 │       │   │   ├── Weather.vue         # 天气查询页面
 │       │   │   └── Layout.vue          # 布局组件（含路由过渡）
 │       │   ├── assets/             # 静态资源
-│       │   │   └── theme.css           # 全局主题样式规范 ⭐新增
-│       │   ├── __tests__/          # 前端测试 ⭐新增
+│       │   │   └── theme.css           # 全局主题样式规范 
+│       │   ├── __tests__/          # 前端测试 
 │       │   │   ├── Login.spec.js       # 登录测试
 │       │   │   └── Todo.spec.js        # 待办测试
 │       │   └── router/             # 路由配置
-├── 🧪 parttest/                    # 后端测试文件
+├── parttest/                    # 后端测试文件
 │   ├── 01_auth_tests/              # 认证模块测试
 │   ├── 02_todo_tests/              # 待办模块测试
 │   ├── 03_meeting_tests/           # 会议模块测试
@@ -293,13 +292,13 @@ project/
 │   ├── 07_security_tests/          # 安全模块测试
 │   ├── reports/                    # 测试报告
 │   └── generate_*.py               # 报告生成脚本
-├── ⚙️ config/                      # 配置文件
-├── 🔄 .github/workflows/           # GitHub Actions CI/CD ⭐新增
+├── config/                      # 配置文件
+├── .github/workflows/           # GitHub Actions CI/CD 
 │   └── ci-cd.yml                   # 自动化流水线
-└── 📝 .env.example                 # 环境变量模板
+└── .env.example                 # 环境变量模板
 ```
 
-## 🔑 API 文档
+## API 文档
 
 启动后端后访问：
 - Swagger UI: `http://localhost:8080/docs`
@@ -307,7 +306,7 @@ project/
 
 详细 API 文档请查看 [API接口文档.md](./API接口文档.md)
 
-## 🧪 测试
+## 测试
 
 ### 后端测试
 ```bash
@@ -350,7 +349,7 @@ python run_eval.py
 
 详细评估说明请查看 [RAG_eval/README.md](./RAG_eval/README.md)
 
-## 📊 系统架构
+## 系统架构
 
 ```
 用户 → Vue3 前端 → FastAPI 后端 → LangGraph 工作流
@@ -366,22 +365,22 @@ python run_eval.py
                             RAG检索 (可选)
 ```
 
-## 🔐 安全说明
+## 安全说明
 
-- ✅ API 密钥通过环境变量管理
-- ✅ `.env` 文件已加入 `.gitignore`
-- ✅ 使用 Session Token 进行身份认证（数据库存储）
-- ✅ 密码使用 SHA256 哈希存储
-- ✅ RAGAS 评估结果不上传到 Git
-- ✅ **新增**: 审计日志中间件记录关键操作
-- ✅ **新增**: 全局异常处理防止信息泄露
-- ⚠️ **DATA/** 目录包含企业内部文档，请根据实际情况决定是否上传
-- ⚠️ **RAG/chroma_db/** 目录为向量数据库，已加入 `.gitignore`
-- ⚠️ **RAG_eval/results/** 目录为评估结果，已加入 `.gitignore`
+- API 密钥通过环境变量管理
+- `.env` 文件已加入 `.gitignore`
+- 使用 Session Token 进行身份认证（数据库存储）
+- 密码使用 SHA256 哈希存储
+- RAGAS 评估结果不上传到 Git
+- **新增**: 审计日志中间件记录关键操作
+- **新增**: 全局异常处理防止信息泄露
+- **DATA/** 目录包含企业内部文档，请根据实际情况决定是否上传
+- **RAG/chroma_db/** 目录为向量数据库，已加入 `.gitignore`
+- **RAG_eval/results/** 目录为评估结果，已加入 `.gitignore`
 
 **重要**: 请勿将 `.env` 文件或 API 密钥提交到版本控制系统！
 
-## 📝 开发指南
+## 开发指南
 
 ### 添加新的 Agent
 
@@ -398,7 +397,7 @@ python run_eval.py
 - `meeting_agent.txt` - 会议处理提示词
 - `weather_agent.txt` - 天气查询提示词
 
-### 🚀 代码优化说明 (2026-05-13)
+### 代码优化说明 (2026-05-13)
 
 本次优化主要包含三个方面：
 
@@ -440,7 +439,7 @@ return TodoListResponse(
 
 详细优化内容请查看 [OPTIMIZATION_SUMMARY.md](./OPTIMIZATION_SUMMARY.md)
 
-## 🤝 贡献
+## 贡献
 
 欢迎提交 Issue 和 Pull Request！
 
@@ -450,11 +449,11 @@ return TodoListResponse(
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 开启 Pull Request
 
-## 📄 许可证
+## 许可证
 
 本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
 
-## 🙏 致谢
+## 致谢
 
 - [LangChain](https://github.com/langchain-ai/langchain) - AI 应用开发框架
 - [FastAPI](https://fastapi.tiangolo.com/) - 高性能 Web 框架
@@ -462,10 +461,10 @@ return TodoListResponse(
 - [阿里云通义千问](https://tongyi.aliyun.com/) - LLM 服务
 - [Element Plus](https://element-plus.org/) - Vue 3 组件库
 
-## 📧 联系方式
+## 联系方式
 
 如有问题或建议，欢迎提 Issue 或联系作者。
 
 ---
 
-⭐ 如果这个项目对你有帮助，请给个 Star 支持一下！
+如果这个项目对你有帮助，请给个 Star 支持一下！
